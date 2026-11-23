@@ -26,15 +26,10 @@ from frontend.components import (
     page_header,
     progress_bar,
     section_title,
+    styled_layout,
     table_height,
 )
-from frontend.theme import PLOTLY_LAYOUT, STATUS_CRITICAL, STATUS_GOOD, STATUS_WARNING
-
-
-def _styled_layout(**overrides):
-    layout = dict(PLOTLY_LAYOUT)
-    layout.update(overrides)
-    return layout
+from frontend.theme import STATUS_CRITICAL, STATUS_GOOD, STATUS_WARNING
 
 
 def render_strategic_insights(filtered_df, df, selected_department, X, rf_model, encoders, cost_per_leaver):
@@ -256,7 +251,7 @@ def render_strategic_insights(filtered_df, df, selected_department, X, rf_model,
                 },
             )
         )
-        fig_forecast.update_layout(**_styled_layout(height=240))
+        fig_forecast.update_layout(**styled_layout(height=240))
         st.plotly_chart(fig_forecast, width="stretch", config={"displayModeBar": False})
 
         st.markdown(
@@ -395,7 +390,7 @@ organizational maturity in managing:
         color="Importance",
         color_continuous_scale="Blues",
     )
-    fig_ml.update_layout(**_styled_layout(height=520, yaxis=dict(categoryorder="total ascending")))
+    fig_ml.update_layout(**styled_layout(height=520, yaxis=dict(categoryorder="total ascending")))
     st.plotly_chart(fig_ml, width="stretch")
 
     # =========================================================

@@ -16,14 +16,8 @@ from backend.analytics import (
     get_satisfaction_metrics,
     get_workforce_metrics,
 )
-from frontend.components import badge, card_eyebrow, divider, glass_card, kpi_row, page_header, ring_metric, section_title
-from frontend.theme import PLOTLY_AXIS, PLOTLY_LAYOUT, SERIES, STATUS_CRITICAL, STATUS_GOOD
-
-
-def _styled_layout(**overrides):
-    layout = dict(PLOTLY_LAYOUT)
-    layout.update(overrides)
-    return layout
+from frontend.components import badge, card_eyebrow, divider, glass_card, kpi_row, page_header, ring_metric, section_title, styled_layout
+from frontend.theme import PLOTLY_AXIS, SERIES, STATUS_CRITICAL, STATUS_GOOD
 
 
 def render_workforce_analytics(filtered_df, df, selected_department):
@@ -107,7 +101,7 @@ def render_workforce_analytics(filtered_df, df, selected_department):
                     hovertemplate="%{x}: %{y} employees<extra></extra>",
                 )
             )
-            fig_dist.update_layout(**_styled_layout(height=250, showlegend=False, margin=dict(l=10, r=10, t=45, b=10)))
+            fig_dist.update_layout(**styled_layout(height=250, showlegend=False, margin=dict(l=10, r=10, t=45, b=10)))
             fig_dist.update_xaxes(**PLOTLY_AXIS, showgrid=False)
             fig_dist.update_yaxes(
                 **PLOTLY_AXIS, showgrid=True, visible=False, range=[0, dept_counts.values.max() * 1.25]
@@ -178,7 +172,7 @@ def render_workforce_analytics(filtered_df, df, selected_department):
                 },
             )
         )
-        fig_gauge.update_layout(**_styled_layout(height=260))
+        fig_gauge.update_layout(**styled_layout(height=260))
         st.plotly_chart(fig_gauge, width="stretch", config={"displayModeBar": False})
 
         kpi_row(
@@ -209,7 +203,7 @@ def render_workforce_analytics(filtered_df, df, selected_department):
             )
         )
         fig_composition.update_layout(
-            **_styled_layout(height=240, barmode="stack", title="Workforce Composition")
+            **styled_layout(height=240, barmode="stack", title="Workforce Composition")
         )
         fig_composition.update_xaxes(visible=False)
         fig_composition.update_yaxes(visible=False)
@@ -278,7 +272,7 @@ def render_workforce_analytics(filtered_df, df, selected_department):
                 hovertemplate="Satisfaction %{x}: %{y:.1%} attrition<extra></extra>",
             )
         )
-        fig.update_layout(**_styled_layout(height=380, title="Attrition by Job Satisfaction", showlegend=False))
+        fig.update_layout(**styled_layout(height=380, title="Attrition by Job Satisfaction", showlegend=False))
         fig.update_xaxes(title="Job Satisfaction Level", **PLOTLY_AXIS)
         fig.update_yaxes(title="Attrition Rate", tickformat=".0%", **PLOTLY_AXIS)
         st.plotly_chart(fig, width="stretch")
@@ -291,7 +285,7 @@ def render_workforce_analytics(filtered_df, df, selected_department):
                 hovertemplate="Balance %{x}: %{y:.1%} attrition<extra></extra>",
             )
         )
-        fig.update_layout(**_styled_layout(height=380, title="Work-Life Balance Impact", showlegend=False))
+        fig.update_layout(**styled_layout(height=380, title="Work-Life Balance Impact", showlegend=False))
         fig.update_xaxes(title="Work-Life Balance Rating", **PLOTLY_AXIS)
         fig.update_yaxes(title="Attrition Rate", tickformat=".0%", **PLOTLY_AXIS)
         st.plotly_chart(fig, width="stretch")
@@ -314,7 +308,7 @@ def render_workforce_analytics(filtered_df, df, selected_department):
                 hovertemplate="Year %{x}: %{y:.1%} attrition<extra></extra>",
             )
         )
-        fig.update_layout(**_styled_layout(height=380, title="Attrition by Employee Tenure", showlegend=False))
+        fig.update_layout(**styled_layout(height=380, title="Attrition by Employee Tenure", showlegend=False))
         fig.update_xaxes(title="Years at Company", **PLOTLY_AXIS)
         fig.update_yaxes(title="Attrition Rate", tickformat=".0%", **PLOTLY_AXIS)
         st.plotly_chart(fig, width="stretch")
@@ -324,7 +318,7 @@ def render_workforce_analytics(filtered_df, df, selected_department):
         fig.add_trace(go.Histogram(x=attrition_yes, name="Attrition", marker_color=STATUS_CRITICAL, opacity=0.85))
         fig.add_trace(go.Histogram(x=attrition_no, name="Retention", marker_color="#60A5FA", opacity=0.85))
         fig.update_layout(
-            **_styled_layout(height=380, title="Income Distribution & Attrition", barmode="stack")
+            **styled_layout(height=380, title="Income Distribution & Attrition", barmode="stack")
         )
         fig.update_xaxes(title="Monthly Income", **PLOTLY_AXIS)
         fig.update_yaxes(title="Employees", **PLOTLY_AXIS)

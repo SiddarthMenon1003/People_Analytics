@@ -15,14 +15,8 @@ from backend.insights_engine import (
     get_risk_summary,
 )
 from backend.model import simulate_overtime_reduction
-from frontend.components import card_eyebrow, divider, executive_card, glass_card, kpi_row, page_header, ring_metric, section_title
-from frontend.theme import PLOTLY_AXIS, PLOTLY_LAYOUT, SEQUENTIAL_BLUE, STATUS_WARNING
-
-
-def _styled_layout(**overrides):
-    layout = dict(PLOTLY_LAYOUT)
-    layout.update(overrides)
-    return layout
+from frontend.components import card_eyebrow, divider, executive_card, glass_card, kpi_row, page_header, ring_metric, section_title, styled_layout
+from frontend.theme import PLOTLY_AXIS, SEQUENTIAL_BLUE, STATUS_WARNING
 
 
 def render_risk_intelligence(filtered_df, selected_department, X, rf_model, encoders, cost_per_leaver):
@@ -220,7 +214,7 @@ def render_risk_intelligence(filtered_df, selected_department, X, rf_model, enco
             hovertemplate="%{y}: %{x} pts<extra></extra>",
         )
     )
-    fig.update_layout(**_styled_layout(height=380, title="Feature Importance Analysis", showlegend=False))
+    fig.update_layout(**styled_layout(height=380, title="Feature Importance Analysis", showlegend=False))
     fig.update_xaxes(title="Risk Contribution Score", **PLOTLY_AXIS)
     fig.update_yaxes(categoryorder="total ascending", **PLOTLY_AXIS)
     st.plotly_chart(fig, width="stretch")
@@ -257,7 +251,7 @@ def render_risk_intelligence(filtered_df, selected_department, X, rf_model, enco
             colorbar=dict(title="Risk Score", tickfont=dict(color="#94A3B8")),
         )
     )
-    fig.update_layout(**_styled_layout(height=380, title="Risk Heatmap: Overtime vs Satisfaction"))
+    fig.update_layout(**styled_layout(height=380, title="Risk Heatmap: Overtime vs Satisfaction"))
     fig.update_xaxes(title="Job Satisfaction", **PLOTLY_AXIS)
     fig.update_yaxes(title="Overtime Status", **PLOTLY_AXIS)
     st.plotly_chart(fig, width="stretch")

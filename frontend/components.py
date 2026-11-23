@@ -30,9 +30,17 @@ from itertools import count
 
 import streamlit as st
 
-from frontend.theme import STATUS_GOOD
+from frontend.theme import PLOTLY_LAYOUT, STATUS_GOOD
 
 _glass_card_ids = count()
+
+
+def styled_layout(**overrides):
+    """Plotly layout dict seeded from the shared theme, with per-chart overrides."""
+
+    layout = dict(PLOTLY_LAYOUT)
+    layout.update(overrides)
+    return layout
 
 
 def page_header(eyebrow, title, description, badge_text=None, badge_color=STATUS_GOOD):
