@@ -6,10 +6,6 @@ inline in the page modules — separates "what the words say" from "how the
 page is laid out."
 """
 
-# =============================================================================
-# DEPARTMENT-LEVEL RECOMMENDATIONS & CONTENT
-# =============================================================================
-
 _DEPARTMENT_RECOMMENDATIONS = {
     "All": """
 Recommended organizational initiatives:
@@ -54,7 +50,6 @@ def get_department_recommendation(selected_department):
     """Department-level workforce recommendation copy."""
 
     return _DEPARTMENT_RECOMMENDATIONS.get(selected_department, _DEPARTMENT_RECOMMENDATIONS["All"])
-
 
 _DEPARTMENT_CONTENT = {
     "All": {
@@ -151,7 +146,6 @@ def get_department_content(comparison):
         "summary": content["summary"],
     }
 
-
 _EXECUTIVE_PRIORITIES = {
     "All": {
         "title": "Reduce Overtime Exposure",
@@ -211,7 +205,6 @@ def get_workforce_department_content(comparison):
         ),
     }
 
-
 _RISK_DRIVER_SIGNALS = {
     "Overtime Exposure": "Workforce Burnout Signal",
     "Low Job Satisfaction": "Engagement Risk Signal",
@@ -236,7 +229,6 @@ def get_risk_driver(filtered_df):
     name = max(factors, key=factors.get)
 
     return name, _RISK_DRIVER_SIGNALS[name]
-
 
 _RISK_PERSONAS = {
     "All": (
@@ -327,7 +319,6 @@ def get_risk_personas(selected_department):
 
     return _RISK_PERSONAS.get(selected_department, _RISK_PERSONAS["All"])
 
-
 _ACTION_PRIORITIES = {
     "All": """
 1. Reduce sustained overtime dependency
@@ -368,7 +359,6 @@ def get_risk_action_priorities(selected_department):
     """Ranked strategic action priorities for the selected department."""
 
     return _ACTION_PRIORITIES.get(selected_department, _ACTION_PRIORITIES["All"])
-
 
 _PREDICTIVE_INTELLIGENCE = {
     "Sales": """
@@ -415,10 +405,7 @@ representing approximately **{high_risk_percentage}%**
 of the workforce population.
 """
 
-
-# =============================================================================
 # RISK LABEL -> EXECUTIVE NARRATIVE ENGINES
-# =============================================================================
 
 _STRATEGIC_OUTLOOK = {
     "Low Risk": {
@@ -444,7 +431,6 @@ def get_strategic_outlook(risk_label, selected_department):
 
     return {"heading": outlook["heading"], "text": outlook["text"].format(entity=entity)}
 
-
 _EXECUTIVE_POSITION = {
     "Low Risk": {
         "title": "Strong Workforce Stability",
@@ -465,7 +451,6 @@ def get_executive_position(risk_label):
     """Executive workforce position title/text for the current risk level."""
 
     return _EXECUTIVE_POSITION[risk_label]
-
 
 _RISK_EXECUTIVE_POSITION = {
     "Low Risk": {
@@ -488,7 +473,6 @@ def get_risk_executive_position(risk_label):
 
     return _RISK_EXECUTIVE_POSITION[risk_label]
 
-
 _OVERVIEW_EXECUTIVE_BRIEF = {
     "Low Risk": ("Healthy Workforce Environment", "Operational Workforce Stability"),
     "Moderate Risk": ("Moderate Attrition Exposure", "Overtime Workforce Burnout"),
@@ -501,10 +485,8 @@ def get_overview_executive_brief(risk_label):
 
     return _OVERVIEW_EXECUTIVE_BRIEF[risk_label]
 
-
-# =============================================================================
 # NUMERIC-THRESHOLD ENGINES (health index, workforce maturity)
-# =============================================================================
+
 
 def get_health_assessment(health_index, selected_department):
     """Workforce health narrative bucketed by health index score."""
@@ -543,10 +525,8 @@ def get_strategy_maturity(health_index):
 
     return {"level": "Reactive Workforce Strategy", "icon": "\U0001f534"}
 
-
-# =============================================================================
 # SCOPE-DEPENDENT NARRATIVE (organization-wide vs. single department)
-# =============================================================================
+
 
 def get_optimization_projection(selected_department, projected_retention_gain, projected_savings):
     """Executive workforce optimization projection, org-wide or department-scoped."""

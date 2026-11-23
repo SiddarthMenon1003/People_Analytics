@@ -33,10 +33,6 @@ def render_risk_intelligence(filtered_df, selected_department, X, rf_model, enco
         badge_color=STATUS_WARNING,
     )
 
-    # =========================================================
-    # RISK SCORE GENERATION
-    # =========================================================
-
     metrics = get_risk_metrics(filtered_df, cost_per_leaver)
     high_risk_count = metrics["high_risk_count"]
     avg_risk_score = metrics["avg_risk_score"]
@@ -60,10 +56,6 @@ def render_risk_intelligence(filtered_df, selected_department, X, rf_model, enco
         "High Risk": "High Risk Exposure",
     }
     risk_level = risk_level_map[risk_data["label"]]
-
-    # =========================================================
-    # EXECUTIVE RISK SNAPSHOT
-    # =========================================================
 
     divider()
     section_title("Executive Risk Snapshot")
@@ -106,10 +98,6 @@ def render_risk_intelligence(filtered_df, selected_department, X, rf_model, enco
             ]
         )
 
-    # =========================================================
-    # ORGANIZATIONAL RISK STATUS
-    # =========================================================
-
     divider()
 
     risk_summary = get_risk_summary(selected_department, high_risk_percentage, risk_level)
@@ -121,10 +109,6 @@ def render_risk_intelligence(filtered_df, selected_department, X, rf_model, enco
         accent=risk_color,
         tinted=True,
     )
-
-    # =========================================================
-    # PREDICTIVE RISK DISTRIBUTION
-    # =========================================================
 
     divider()
     section_title("Predictive Risk Distribution")
@@ -193,10 +177,6 @@ def render_risk_intelligence(filtered_df, selected_department, X, rf_model, enco
             }]
         )
 
-    # =========================================================
-    # PREDICTIVE RISK DRIVERS
-    # =========================================================
-
     divider()
     section_title("Predictive Risk Drivers")
 
@@ -219,10 +199,6 @@ def render_risk_intelligence(filtered_df, selected_department, X, rf_model, enco
     fig.update_yaxes(categoryorder="total ascending", **PLOTLY_AXIS)
     st.plotly_chart(fig, width="stretch")
 
-    # =========================================================
-    # HIGH-RISK PERSONAS
-    # =========================================================
-
     divider()
     section_title("High-Risk Workforce Personas")
 
@@ -233,10 +209,6 @@ def render_risk_intelligence(filtered_df, selected_department, X, rf_model, enco
         st.info(persona_one)
     with persona_col2:
         st.info(persona_two)
-
-    # =========================================================
-    # RISK HEATMAP
-    # =========================================================
 
     divider()
     section_title("Workforce Risk Pattern Analysis")
@@ -255,10 +227,6 @@ def render_risk_intelligence(filtered_df, selected_department, X, rf_model, enco
     fig.update_xaxes(title="Job Satisfaction", **PLOTLY_AXIS)
     fig.update_yaxes(title="Overtime Status", **PLOTLY_AXIS)
     st.plotly_chart(fig, width="stretch")
-
-    # =========================================================
-    # SIMULATION, INSIGHTS, COST, PRIORITIES
-    # =========================================================
 
     divider()
     section_title("Predictive Scenario Simulation")

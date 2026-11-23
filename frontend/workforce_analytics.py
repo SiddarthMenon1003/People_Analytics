@@ -58,10 +58,6 @@ def render_workforce_analytics(filtered_df, df, selected_department):
 
     divider()
 
-    # =========================================================
-    # OPERATIONAL SIGNAL + STABILITY INDEX + DEPARTMENT MIX
-    # =========================================================
-
     signal_col, ring_col, dist_col = st.columns([1.1, 1, 1])
 
     with signal_col:
@@ -109,10 +105,6 @@ def render_workforce_analytics(filtered_df, df, selected_department):
 
             st.plotly_chart(fig_dist, width="stretch", config={"displayModeBar": False})
 
-    # =========================================================
-    # OVERTIME & BURNOUT ANALYSIS
-    # =========================================================
-
     divider()
     section_title("Overtime & Burnout Analysis")
 
@@ -141,10 +133,6 @@ def render_workforce_analytics(filtered_df, df, selected_department):
 
     with insight2:
         st.info(get_primary_risk_driver())
-
-    # =========================================================
-    # VISUAL ANALYTICS
-    # =========================================================
 
     chart1, chart2 = st.columns(2)
 
@@ -217,10 +205,6 @@ def render_workforce_analytics(filtered_df, df, selected_department):
             ]
         )
 
-    # =========================================================
-    # STRATEGIC RECOMMENDATION & FINDINGS
-    # =========================================================
-
     divider()
     section_title("Strategic Recommendation")
     st.success(get_department_recommendation(selected_department))
@@ -245,10 +229,6 @@ def render_workforce_analytics(filtered_df, df, selected_department):
 - Workforce stability score currently stands at **{workforce_stability_score}/100**.
 """
         )
-
-    # =========================================================
-    # SATISFACTION & ENGAGEMENT ANALYSIS
-    # =========================================================
 
     satisfaction_data = get_satisfaction_metrics(filtered_df)
     job_sat = satisfaction_data["job_satisfaction"]
@@ -289,10 +269,6 @@ def render_workforce_analytics(filtered_df, df, selected_department):
         fig.update_xaxes(title="Work-Life Balance Rating", **PLOTLY_AXIS)
         fig.update_yaxes(title="Attrition Rate", tickformat=".0%", **PLOTLY_AXIS)
         st.plotly_chart(fig, width="stretch")
-
-    # =========================================================
-    # WORKFORCE LIFECYCLE ANALYSIS
-    # =========================================================
 
     divider()
     section_title("Workforce Lifecycle Analysis")

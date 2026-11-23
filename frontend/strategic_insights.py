@@ -76,10 +76,6 @@ def render_strategic_insights(filtered_df, df, selected_department, X, rf_model,
         badge_color="#A78BFA",
     )
 
-    # =========================================================
-    # EXECUTIVE COMMAND CENTER
-    # =========================================================
-
     kpi_row(
         [
             {"label": "Workforce Posture", "value": executive_position["title"], "accent": "#38BDF8"},
@@ -121,10 +117,6 @@ def render_strategic_insights(filtered_df, df, selected_department, X, rf_model,
             }]
         )
 
-    # =========================================================
-    # WORKFORCE HEALTH INDEX
-    # =========================================================
-
     divider()
     section_title("Workforce Health Index")
 
@@ -160,10 +152,6 @@ def render_strategic_insights(filtered_df, df, selected_department, X, rf_model,
             dot=True,
         )
 
-    # =========================================================
-    # EXECUTIVE WORKFORCE OUTLOOK
-    # =========================================================
-
     divider()
     section_title("Executive Workforce Outlook")
 
@@ -193,10 +181,6 @@ def render_strategic_insights(filtered_df, df, selected_department, X, rf_model,
             unsafe_allow_html=True,
         )
 
-    # =========================================================
-    # STRATEGIC PRIORITY MATRIX
-    # =========================================================
-
     divider()
     section_title("Strategic Priority Matrix")
 
@@ -220,10 +204,6 @@ def render_strategic_insights(filtered_df, df, selected_department, X, rf_model,
         hide_index=True,
         height=table_height(len(priority_df)),
     )
-
-    # =========================================================
-    # STRATEGIC WORKFORCE FORECAST
-    # =========================================================
 
     divider()
     section_title("Strategic Workforce Forecast")
@@ -313,10 +293,6 @@ def render_strategic_insights(filtered_df, df, selected_department, X, rf_model,
             ]:
                 metric_line(row_label, row_value, row_color, large=True)
 
-    # =========================================================
-    # AI EXECUTIVE NARRATIVE / RANKING / DECISIONS
-    # =========================================================
-
     divider()
     section_title("AI Executive Narrative")
     st.info(department_content["narrative"])
@@ -371,10 +347,6 @@ organizational maturity in managing:
 """
     )
 
-    # =========================================================
-    # ATTRITION DRIVER INTELLIGENCE (MODEL FEATURE IMPORTANCE)
-    # =========================================================
-
     divider()
     section_title("Attrition Driver Intelligence")
 
@@ -392,10 +364,6 @@ organizational maturity in managing:
     )
     fig_ml.update_layout(**styled_layout(height=520, yaxis=dict(categoryorder="total ascending")))
     st.plotly_chart(fig_ml, width="stretch")
-
-    # =========================================================
-    # LIVE EMPLOYEE ATTRITION PREDICTION
-    # =========================================================
 
     divider()
     section_title("Live Employee Attrition Prediction")
@@ -438,10 +406,6 @@ organizational maturity in managing:
         f"{band_label} — riskier than {percentile:.0f}% of employees "
         f"(model attrition probability {score:.0%})"
     )
-
-    # =========================================================
-    # FINAL EXECUTIVE SUMMARY
-    # =========================================================
 
     divider()
     section_title("Executive Strategic Summary")

@@ -32,10 +32,6 @@ def render_overview(filtered_df, df, selected_department, model_metrics):
 
     st.caption(f"Last Intelligence Refresh: {datetime.now().strftime('%d %b %Y • %H:%M')}")
 
-    # =========================================================
-    # KPI CALCULATIONS
-    # =========================================================
-
     overview_metrics = get_overview_metrics(filtered_df)
     total_employees = overview_metrics["total_employees"]
     attrition_rate = overview_metrics["attrition_rate"]
@@ -45,10 +41,6 @@ def render_overview(filtered_df, df, selected_department, model_metrics):
     risk_data = get_org_risk(filtered_df)
     high_risk_percentage = risk_data["high_risk_percentage"]
     overview_title, attention_area = get_overview_executive_brief(risk_data["label"])
-
-    # =========================================================
-    # EXECUTIVE INTELLIGENCE BRIEF
-    # =========================================================
 
     section_title("Executive Intelligence Brief")
 
@@ -77,9 +69,7 @@ def render_overview(filtered_df, df, selected_department, model_metrics):
 
     divider()
 
-    # =========================================================
     # HEADLINE KPIs
-    # =========================================================
 
     kpi_row(
         [
@@ -90,17 +80,9 @@ def render_overview(filtered_df, df, selected_department, model_metrics):
         ]
     )
 
-    # =========================================================
-    # ORGANIZATIONAL RISK STATUS
-    # =========================================================
-
     divider()
     section_title("Organizational Risk Status")
     st.info(f"Current Organizational Risk Level: {risk_data['status']}")
-
-    # =========================================================
-    # KEY BUSINESS INSIGHTS
-    # =========================================================
 
     section_title("Key Workforce Insights")
 
@@ -115,10 +97,6 @@ def render_overview(filtered_df, df, selected_department, model_metrics):
             overtime_percentage,
         )
     )
-
-    # =========================================================
-    # VISUAL ANALYTICS
-    # =========================================================
 
     divider()
     section_title("Workforce Analytics Overview")

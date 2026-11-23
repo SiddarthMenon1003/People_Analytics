@@ -5,9 +5,7 @@ page modules read from this file, so the dashboard's visual language stays
 consistent in one place instead of being redefined per chart.
 """
 
-# ---------------------------------------------------------------------------
 # Surfaces & ink (dark theme only — this app does not support light mode)
-# ---------------------------------------------------------------------------
 
 BG_PAGE = "#0B1120"
 BG_SURFACE = "#111827"
@@ -22,10 +20,8 @@ BORDER = "rgba(255,255,255,0.08)"
 BORDER_STRONG = "rgba(255,255,255,0.16)"
 GRIDLINE = "rgba(255,255,255,0.08)"
 
-# ---------------------------------------------------------------------------
 # Status palette — reserved for risk/health states, never reused as a
 # generic series color so "red" always means the same thing everywhere.
-# ---------------------------------------------------------------------------
 
 STATUS_GOOD = "#22C55E"
 STATUS_WARNING = "#F59E0B"
@@ -37,10 +33,8 @@ RISK_COLORS = {
     "High Risk": STATUS_CRITICAL,
 }
 
-# ---------------------------------------------------------------------------
 # Categorical series palette — fixed order, reused across every multi-series
 # chart so the same slot always maps to the same hue.
-# ---------------------------------------------------------------------------
 
 SERIES = [
     "#60A5FA",  # blue
@@ -56,9 +50,7 @@ SEQUENTIAL_BLUE = [
     "#0B1F3A", "#123A66", "#1D4E89", "#2563EB", "#3B82F6", "#60A5FA", "#93C5FD", "#DBEAFE",
 ]
 
-# ---------------------------------------------------------------------------
 # Chart chrome shared by every Plotly figure
-# ---------------------------------------------------------------------------
 
 PLOTLY_LAYOUT = dict(
     template="plotly_dark",
