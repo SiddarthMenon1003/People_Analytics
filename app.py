@@ -1,9 +1,4 @@
-"""Workforce Intelligence Dashboard — Streamlit entry point.
-
-This module only orchestrates the page: load data, validate it, train the
-model, apply filters, and dispatch to the selected page renderer. All
-business logic lives in `backend/`, all layout lives in `frontend/`.
-"""
+"""Streamlit entry point: load, validate, train, filter, route. Logic in backend/, layout in frontend/."""
 
 import pandas as pd
 import streamlit as st
@@ -119,8 +114,7 @@ def main():
         ),
     ]
 
-    # Zipped positionally against NAVIGATION_ITEMS so the routing table can
-    # never drift out of sync with the sidebar's radio options.
+    # positional zip keeps routing in sync with sidebar order
     dict(zip(NAVIGATION_ITEMS, renderers))[section]()
 
     footer()

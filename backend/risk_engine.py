@@ -1,9 +1,4 @@
-"""Workforce risk scoring and classification.
-
-Risk/health color semantics are owned here (not imported from the UI layer)
-so this module stays independent of Streamlit — the three colors below are
-kept in sync with `frontend.theme`'s status palette by convention.
-"""
+"""Risk scoring/classification; colors kept in sync with frontend.theme by convention."""
 
 GOOD_COLOR = "#22C55E"
 WARNING_COLOR = "#F59E0B"

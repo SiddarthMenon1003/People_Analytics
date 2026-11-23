@@ -69,8 +69,6 @@ def render_overview(filtered_df, df, selected_department, model_metrics):
 
     divider()
 
-    # HEADLINE KPIs
-
     kpi_row(
         [
             {"icon": "\U0001F465", "label": "Total Workforce", "value": f"{total_employees:,}", "accent": "#60A5FA"},
@@ -106,8 +104,7 @@ def render_overview(filtered_df, df, selected_department, model_metrics):
     with chart1:
         health_data = classify_workforce_health(retention_percent)
 
-        # Overtime attrition multiplier: how much more often overtime workers
-        # leave than non-overtime workers, for the current department filter.
+        # overtime attrition multiplier vs non-overtime, current filter
         ot_mask = filtered_df["OverTime"] == "Yes"
         ot_attrition = (
             round((filtered_df[ot_mask]["Attrition"] == "Yes").mean() * 100, 1)

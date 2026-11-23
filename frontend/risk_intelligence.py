@@ -41,8 +41,7 @@ def render_risk_intelligence(filtered_df, selected_department, X, rf_model, enco
     projected_attrition_impact = metrics["projected_attrition_impact"]
     heatmap_data = metrics["heatmap_data"]
 
-    # Model-based "remove all overtime" scenario — the honest replacement for
-    # the old fixed 0.18 optimization multiplier.
+    # model-based "remove all overtime" scenario (no fixed multiplier)
     full_sim = simulate_overtime_reduction(rf_model, X, encoders, filtered_df, share=100)
     optimization_gain = full_sim["reduction_pct"]
 
@@ -116,8 +115,7 @@ def render_risk_intelligence(filtered_df, selected_department, X, rf_model, enco
     meter_col, snapshot_col = st.columns([1.2, 1])
 
     with meter_col:
-        # Marker position matches the org risk verdict, so the meter and the
-        # card label can never point at different bands.
+        # marker matches the org risk verdict so meter and label agree
         meter_position = {"Low Risk": 18, "Moderate Risk": 42, "High Risk": 76}[risk_data["label"]]
         overtime_share = round((filtered_df["OverTime"] == "Yes").mean() * 100)
 

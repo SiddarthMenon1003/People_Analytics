@@ -1,10 +1,4 @@
-"""Global CSS for the Workforce Intelligence dashboard.
-
-Colors are pulled from `frontend.theme` so the stylesheet and the charts
-never drift out of sync. Streamlit has no first-class theming API for this
-level of detail, so injecting CSS via `st.markdown` is the supported
-escape hatch for a custom, "SaaS product" look.
-"""
+"""Global CSS injected via st.markdown; colors pulled from frontend.theme."""
 
 import streamlit as st
 

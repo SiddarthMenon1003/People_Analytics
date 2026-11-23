@@ -1,11 +1,4 @@
-"""Smoke test: render every page for every department and assert no exceptions.
-
-Run from the repo root with the project environment active:
-
-    python smoke_test.py
-
-Exits non-zero if any page/department combination raises.
-"""
+"""Smoke test: render every page x department, assert no exceptions; non-zero exit on failure."""
 
 import sys
 

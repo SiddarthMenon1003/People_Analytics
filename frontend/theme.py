@@ -1,12 +1,6 @@
-"""Single source of truth for color and spacing tokens.
+"""Single source of truth for color/spacing tokens; read by styles.py and charts."""
 
-Both the CSS injected by `styles.py` and the Plotly/Matplotlib charts in the
-page modules read from this file, so the dashboard's visual language stays
-consistent in one place instead of being redefined per chart.
-"""
-
-# Surfaces & ink (dark theme only — this app does not support light mode)
-
+# surfaces & ink (dark theme only)
 BG_PAGE = "#0B1120"
 BG_SURFACE = "#111827"
 BG_SURFACE_ALT = "#1E293B"
@@ -20,9 +14,7 @@ BORDER = "rgba(255,255,255,0.08)"
 BORDER_STRONG = "rgba(255,255,255,0.16)"
 GRIDLINE = "rgba(255,255,255,0.08)"
 
-# Status palette — reserved for risk/health states, never reused as a
-# generic series color so "red" always means the same thing everywhere.
-
+# status palette — reserved for risk/health, never reused as a series color
 STATUS_GOOD = "#22C55E"
 STATUS_WARNING = "#F59E0B"
 STATUS_CRITICAL = "#EF4444"
@@ -33,9 +25,7 @@ RISK_COLORS = {
     "High Risk": STATUS_CRITICAL,
 }
 
-# Categorical series palette — fixed order, reused across every multi-series
-# chart so the same slot always maps to the same hue.
-
+# categorical series palette — fixed order so each slot maps to the same hue
 SERIES = [
     "#60A5FA",  # blue
     "#A78BFA",  # violet
@@ -45,28 +35,25 @@ SERIES = [
     "#22D3EE",  # cyan
 ]
 
-# Single-hue sequential ramp (magnitude only — heatmaps, intensity scales)
+# sequential ramp for magnitude (heatmaps, intensity)
 SEQUENTIAL_BLUE = [
     "#0B1F3A", "#123A66", "#1D4E89", "#2563EB", "#3B82F6", "#60A5FA", "#93C5FD", "#DBEAFE",
 ]
 
-# Chart chrome shared by every Plotly figure
-
+# chart chrome shared by every Plotly figure
 PLOTLY_LAYOUT = dict(
     template="plotly_dark",
     paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor="rgba(0,0,0,0)",
     font=dict(color=INK_SECONDARY, family="Inter, sans-serif"),
-    # Generous, fixed margins so the title (top) and legend (bottom) never
-    # collide or get clipped within the chart's declared height.
+    # fixed margins so title (top) and legend (bottom) never clip
     margin=dict(l=10, r=10, t=56, b=56),
     hoverlabel=dict(
         bgcolor=BG_SURFACE_ALT,
         bordercolor=BORDER_STRONG,
         font=dict(color=INK_PRIMARY, family="Inter, sans-serif"),
     ),
-    # Legend sits below the plot area (never above, next to the title) so
-    # a wrapping legend can never overlap the title or get cut off.
+    # legend below the plot so a wrapping legend can't overlap the title
     legend=dict(
         bgcolor="rgba(0,0,0,0)",
         font=dict(color=INK_SECONDARY),

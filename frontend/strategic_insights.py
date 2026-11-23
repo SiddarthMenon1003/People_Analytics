@@ -46,8 +46,7 @@ def render_strategic_insights(filtered_df, df, selected_department, X, rf_model,
     overtime_percentage = metrics["overtime_percentage"]
     total_employees = metrics["total_employees"]
 
-    # Headline forecast at a default 20% overtime reduction, scored by the
-    # model — no fixed multipliers. The interactive what-if lives lower down.
+    # headline forecast: model-scored at a default 20% overtime reduction
     headline_sim = simulate_overtime_reduction(rf_model, X, encoders, filtered_df, share=20)
     optimization_gain = headline_sim["reduction_pct"]
     retention_points = (
@@ -380,9 +379,7 @@ organizational maturity in managing:
         job_satisfaction = st.slider("Job Satisfaction", 1, 4, 2)
         worklife = st.slider("Work-Life Balance", 1, 4, 2)
 
-    # Scored by the trained model, not a hand-weighted rule. Because
-    # class_weight="balanced" inflates raw probabilities, the honest headline
-    # is the percentile — how this employee ranks against the whole workforce.
+    # model-scored; percentile is the honest headline (balanced inflates raw proba)
     score, percentile = predict_employee_risk(
         rf_model,
         X,

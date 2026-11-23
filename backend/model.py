@@ -5,10 +5,7 @@ from sklearn.metrics import precision_score, recall_score, roc_auc_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 
-# Identifier and constant columns carry no predictive signal: EmployeeNumber
-# is a row id, and EmployeeCount/Over18/StandardHours are the same value for
-# every row. Leaving them in lets the model memorize the id and ranks noise
-# as a top driver, so they are dropped before training.
+# id/constant columns with no signal; dropped so the model can't memorize a row id
 ID_AND_CONSTANT_COLS = ["EmployeeNumber", "EmployeeCount", "Over18", "StandardHours"]
 
 
@@ -29,11 +26,7 @@ def preprocess_workforce_data(dataframe):
 
 
 def split_features_target(dataframe):
-    """Split the encoded frame into features (X) and target (y).
-
-    Drops the target plus any identifier/constant columns so the model
-    trains only on columns that carry real attrition signal.
-    """
+    """Split into features (X) and target (y), dropping target + id/constant cols."""
 
     drop = ["Attrition"] + [c for c in ID_AND_CONSTANT_COLS if c in dataframe.columns]
 
@@ -41,13 +34,7 @@ def split_features_target(dataframe):
 
 
 def train_random_forest(X_train, y_train):
-    """Train the Random Forest attrition classifier.
-
-    `class_weight="balanced"` offsets the 84/16 class imbalance so the model
-    actually learns to catch leavers instead of predicting "stay" for nearly
-    everyone; `min_samples_leaf=5` curbs overfitting on the small dataset.
-    """
-
+    # class_weight balances the 84/16 split; min_samples_leaf=5 curbs overfitting
     model = RandomForestClassifier(
         n_estimators=300,
         min_samples_leaf=5,
@@ -61,14 +48,7 @@ def train_random_forest(X_train, y_train):
 
 
 def evaluate_model(model, X_test, y_test):
-    """Held-out ranking and leaver-detection metrics.
-
-    Accuracy is intentionally not reported: on this imbalanced dataset a
-    majority-class baseline already scores ~87%, so accuracy flatters a
-    model that catches almost no leavers. ROC-AUC, recall, and precision
-    describe the model honestly.
-    """
-
+    # ROC-AUC/recall/precision only; accuracy hidden (majority baseline ~84% flatters)
     proba = model.predict_proba(X_test)[:, 1]
     pred = (proba >= 0.5).astype(int)
 
@@ -81,11 +61,7 @@ def evaluate_model(model, X_test, y_test):
 
 @st.cache_resource(show_spinner=False)
 def train_workforce_model(dataframe):
-    """End-to-end workforce attrition model pipeline.
-
-    Cached on the input dataframe's content so switching between dashboard
-    pages or filters doesn't retrain the model on every rerun.
-    """
+    """End-to-end attrition pipeline; cached so page/filter reruns don't retrain."""
 
     ml_df, encoders = preprocess_workforce_data(dataframe)
     X, y = split_features_target(ml_df)
@@ -101,16 +77,7 @@ def train_workforce_model(dataframe):
 
 
 def predict_employee_risk(model, X, encoders, **inputs):
-    """Score a single hypothetical employee with the trained model.
-
-    Starts from the median employee (every feature at its dataset median),
-    overrides the handful of fields exposed in the UI, and returns the raw
-    attrition probability plus the percentile of that probability against
-    the whole workforce. Because `class_weight="balanced"` inflates raw
-    probabilities, the percentile ("riskier than X% of employees") is the
-    honest number to surface rather than the probability on its own.
-    """
-
+    # score from the median employee + UI overrides; percentile is honest (balanced inflates raw proba)
     row = X.median().round().to_frame().T
 
     for col, val in inputs.items():
@@ -125,16 +92,7 @@ def predict_employee_risk(model, X, encoders, **inputs):
 
 
 def simulate_overtime_reduction(model, X, encoders, filtered_df, share):
-    """Re-score the workforce after moving `share`% of overtime staff off it.
-
-    A real what-if, not a fixed multiplier: it scores everyone in scope with
-    the model, flips the highest-risk `share`% of current overtime workers to
-    OverTime="No", re-scores, and reports the change. Because a probability
-    sums to an expected headcount, the drop in the summed probability is the
-    expected number of leavers avoided — which the cost input turns into a
-    savings figure.
-    """
-
+    # what-if: flip top-risk share% of overtime staff to No, re-score; summed-proba drop = leavers avoided
     X_scope = X.loc[filtered_df.index]
 
     if X_scope.empty:

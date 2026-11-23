@@ -1,9 +1,4 @@
-"""Workforce KPI and aggregation calculations.
-
-Every function here is a pure transformation of a pandas DataFrame into the
-metrics the dashboard pages render — no Streamlit calls and no presentation
-logic live in this module, so it can be unit-tested independently of the UI.
-"""
+"""Pure DataFrame -> dashboard metrics; no Streamlit, unit-testable."""
 
 import pandas as pd
 
@@ -14,22 +9,13 @@ from backend.risk_engine import (
     generate_risk_scores,
 )
 
-# Organization-level risk bands, expressed on the share of employees scoring
-# high-risk (RiskScore >= 50) — a different scale from the 0-100 individual
-# score that `classify_risk` grades, so it gets its own thresholds.
+# org risk bands on share of employees with RiskScore >= 50 (not the 0-100 individual scale)
 ORG_LOW_THRESHOLD = 15
 ORG_MODERATE_THRESHOLD = 30
 
 
 def get_org_risk(filtered_df):
-    """Single organization-wide risk verdict for the current filter.
-
-    Every page derives its headline risk label from this one function so the
-    Overview, Risk Intelligence, and Strategic Insights pages can never show
-    three different verdicts for the same data. Returns the same label set as
-    `classify_risk` ("Low/Moderate/High Risk") so downstream narrative lookups
-    keyed on those labels keep working.
-    """
+    """Single org-wide risk verdict; every page reads its headline label from here."""
 
     risk_df = generate_risk_scores(filtered_df)
     high_risk_percentage = round((risk_df["RiskScore"] >= 50).mean() * 100, 1)
@@ -70,13 +56,7 @@ def validate_dataset(dataframe, required_columns):
 
 
 def invalid_attrition_values(dataframe):
-    """Return any `Attrition` values outside {"Yes", "No"}.
-
-    The risk scoring, metrics, and model target all assume a clean Yes/No
-    label, so an uploaded CSV with stray values (blanks, "Y", "True", …)
-    would silently skew every number. This surfaces them so the app can
-    refuse the file instead of reporting garbage.
-    """
+    """Return any Attrition values outside {Yes, No} so the app can reject the file."""
 
     present = set(dataframe["Attrition"].dropna().unique())
 
@@ -84,12 +64,7 @@ def invalid_attrition_values(dataframe):
 
 
 def get_department_options(dataframe):
-    """Department filter options built from the data, not hard-coded.
-
-    Returns "All" followed by the departments actually present, so an
-    uploaded dataset with different departments drives the sidebar filter
-    instead of the four IBM-sample departments baked into the UI.
-    """
+    """"All" plus departments present in the data, so uploads drive the filter."""
 
     return ["All"] + sorted(dataframe["Department"].dropna().unique())
 
@@ -170,9 +145,7 @@ def get_workforce_metrics(filtered_df):
     overtime_pct = _overtime_rate(filtered_df)
     dept_attrition = _attrition_rate(filtered_df)
 
-    # Composite stability score: 100 minus a weighted blend of attrition and
-    # overtime pressure. Reported as computed (0-100) rather than clamped to a
-    # flattering band, so the number reflects the actual inputs.
+    # stability = 100 - weighted(attrition 0.55, overtime 0.45), unclamped 0-100
     stability_score = round(max(0, min(100, 100 - (dept_attrition * 0.55 + overtime_pct * 0.45))), 0)
 
     overtime_attrition_rate = round(
@@ -192,7 +165,7 @@ def get_workforce_metrics(filtered_df):
         "overtime_percentage": overtime_pct,
         "overtime_attrition_rate": overtime_attrition_rate,
         "no_overtime_attrition_rate": no_overtime_attrition_rate,
-        # Overtime-specific stability: the inverse of overtime attrition risk.
+        # inverse of overtime attrition risk
         "workforce_stability_score": round(100 - overtime_attrition_rate, 1),
     }
 
@@ -244,13 +217,7 @@ def get_satisfaction_metrics(filtered_df):
 
 
 def get_risk_metrics(filtered_df, cost_per_leaver):
-    """Employee-level risk scores plus the executive risk roll-up.
-
-    `projected_attrition_impact` is high-risk headcount times the
-    `cost_per_leaver` assumption supplied from the sidebar — no hidden
-    constant. Scenario/optimization numbers are no longer faked here; the
-    pages compute them from the trained model (see `model.simulate_overtime_reduction`).
-    """
+    """Employee risk scores + roll-up; impact = high-risk headcount x cost_per_leaver."""
 
     risk_df = generate_risk_scores(filtered_df)
 
@@ -277,13 +244,7 @@ def get_risk_metrics(filtered_df, cost_per_leaver):
 
 
 def get_strategic_metrics(filtered_df, cost_per_leaver):
-    """Executive-level strategic KPIs, health index, and risk classification.
-
-    `projected_attrition_impact` uses the sidebar `cost_per_leaver` assumption.
-    The forward-looking "optimization/projection" numbers are no longer faked
-    with fixed multipliers here; the page derives them from the trained model
-    via `model.simulate_overtime_reduction`.
-    """
+    """Strategic KPIs, health index, risk class; impact uses sidebar cost_per_leaver."""
 
     attrition_rate = _attrition_rate(filtered_df)
     overtime_percentage = _overtime_rate(filtered_df)
@@ -329,13 +290,7 @@ def get_strategic_metrics(filtered_df, cost_per_leaver):
 
 
 def get_department_risk_ranking(df):
-    """Composite department risk ranking, highest risk first.
-
-    Uses the mean of the same per-employee `RiskScore` the rest of the app
-    ranks on (overtime + satisfaction + work-life + tenure + income), so the
-    ranking can't disagree with the individual scores the way the old
-    overtime/satisfaction/work-life-only formula did.
-    """
+    """Department ranking by mean per-employee RiskScore, highest first."""
 
     scored = generate_risk_scores(df)
     dept_risk = (
@@ -348,13 +303,7 @@ def get_department_risk_ranking(df):
 
 
 def get_department_comparison(df, selected_department):
-    """Department-vs-organization facts used to build data-driven narratives.
-
-    Returns the department's attrition against the company average, its
-    overtime rate, and its composite-risk rank — the raw material the
-    narrative copy is written from, so the text can never claim something the
-    numbers contradict.
-    """
+    """Department-vs-org facts (attrition, overtime, rank) feeding the narratives."""
 
     org_attrition = _attrition_rate(df)
     ranking = get_department_risk_ranking(df)

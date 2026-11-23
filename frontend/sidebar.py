@@ -13,12 +13,7 @@ DEPARTMENTS = ["All", "Sales", "Research & Development", "Human Resources"]
 
 
 def render_sidebar():
-    """Render the dataset upload control and return the uploaded file, if any.
-
-    Tucked into a collapsed expander: the bundled sample dataset loads by
-    default, so uploading your own CSV is an optional action rather than the
-    first thing in the sidebar.
-    """
+    """Dataset upload control (collapsed; sample loads by default); returns the file or None."""
 
     with st.sidebar.expander("Use your own dataset", expanded=False):
         st.caption(
@@ -31,12 +26,7 @@ def render_sidebar():
 
 
 def render_cost_assumption():
-    """Sidebar input for the replacement-cost-per-leaver assumption.
-
-    Every savings/exposure figure in the app is driven by this number, so it
-    is an explicit, editable assumption rather than a constant hidden in the
-    backend.
-    """
+    """Sidebar input for the replacement-cost-per-leaver assumption that drives every $ figure."""
 
     return st.sidebar.number_input(
         "Replacement cost per leaver (assumption, $)",

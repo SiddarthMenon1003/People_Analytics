@@ -1,10 +1,4 @@
-"""Narrative text generators for the dashboard's executive-style copy.
-
-Every function maps a metric (a risk label, a department, a health index)
-to pre-written executive narrative. Keeping this copy here — instead of
-inline in the page modules — separates "what the words say" from "how the
-page is laid out."
-"""
+# maps a metric (risk label, department, health index) to executive narrative copy
 
 _DEPARTMENT_RECOMMENDATIONS = {
     "All": """
@@ -114,13 +108,7 @@ pressure associated with coordination and support demands.
 
 
 def get_department_content(comparison):
-    """Executive narrative / decision / summary block for a department.
-
-    The narrative is built from real figures in `comparison` (attrition vs
-    the company average, overtime rate, composite-risk rank) so it can't
-    contradict the data; the decision/summary copy stays qualitative.
-    """
-
+    # narrative built from real comparison figures; decision/summary stay qualitative
     scope = comparison["scope"]
 
     if scope == "All":
@@ -173,13 +161,7 @@ def get_executive_priority(selected_department):
 
 
 def get_workforce_department_content(comparison):
-    """Operational workforce signal built from real department figures.
-
-    Replaces the old fixed copy (which claimed, e.g., that Sales had the
-    highest overtime and that R&D was "stable" — both contradicted by the
-    data) with a title/text derived from `comparison`.
-    """
-
+    # operational workforce signal derived from real department figures
     scope = comparison["scope"]
 
     if scope == "All":
@@ -213,14 +195,7 @@ _RISK_DRIVER_SIGNALS = {
 
 
 def get_risk_driver(filtered_df):
-    """Most prevalent risk factor (name, signal) for the current scope.
-
-    Computed from the data — the share of employees on overtime, with low
-    job satisfaction, or with poor work-life balance — rather than a fixed
-    per-department label. "Travel Fatigue" is gone: BusinessTravel is not a
-    factor the app actually scores on.
-    """
-
+    # most prevalent risk factor by data share: overtime, low satisfaction, poor work-life
     factors = {
         "Overtime Exposure": (filtered_df["OverTime"] == "Yes").mean(),
         "Low Job Satisfaction": (filtered_df["JobSatisfaction"] <= 2).mean(),
@@ -405,8 +380,6 @@ representing approximately **{high_risk_percentage}%**
 of the workforce population.
 """
 
-# RISK LABEL -> EXECUTIVE NARRATIVE ENGINES
-
 _STRATEGIC_OUTLOOK = {
     "Low Risk": {
         "heading": "Strong workforce sustainability outlook",
@@ -485,8 +458,6 @@ def get_overview_executive_brief(risk_label):
 
     return _OVERVIEW_EXECUTIVE_BRIEF[risk_label]
 
-# NUMERIC-THRESHOLD ENGINES (health index, workforce maturity)
-
 
 def get_health_assessment(health_index, selected_department):
     """Workforce health narrative bucketed by health index score."""
@@ -524,8 +495,6 @@ def get_strategy_maturity(health_index):
         return {"level": "Developing Workforce Strategy", "icon": "\U0001f7e0"}
 
     return {"level": "Reactive Workforce Strategy", "icon": "\U0001f534"}
-
-# SCOPE-DEPENDENT NARRATIVE (organization-wide vs. single department)
 
 
 def get_optimization_projection(selected_department, projected_retention_gain, projected_savings):
@@ -586,13 +555,7 @@ challenges.
 
 
 def get_risk_simulation(selected_department, share, reduction_pct, leavers_avoided):
-    """Model-based overtime-reduction scenario narrative.
-
-    The numbers come from re-scoring the workforce with the trained model
-    after moving the highest-risk `share`% of overtime employees off
-    overtime — not a fixed multiplier.
-    """
-
+    # numbers come from re-scoring the model after moving top-risk share off overtime
     scope = "the organization" if selected_department == "All" else f"the {selected_department} department"
 
     return f"""
