@@ -3,7 +3,9 @@
 Predicting employee attrition and turning it into workforce decisions, served as a
 multi-page Streamlit dashboard.
 
-**Live app:** https://workforce-intelligence-platform.onrender.com/
+**▶ Launch the live app:** **https://workforce-intelligence-platform.onrender.com**
+
+_Hosted on Render — the first load may take ~30s while the free instance wakes._
 
 Built on the IBM HR Analytics Employee Attrition dataset (1,470 employees, 16.1%
 attrition).
@@ -114,11 +116,18 @@ jupyter lab
 
 ## A note on the notebook
 
-An earlier version of the notebook upsampled the minority class **before** the
-train/test split, so copies of the same employees landed in both the training and
-test sets and inflated the scores (RF test ROC-AUC ~0.99). This is fixed: the split
-now happens first and only the training set is upsampled, which brings the numbers
-down to the honest range quoted above.
+The notebook had **two** leakage bugs, both fixed:
+
+1. **Upsampling before the split.** An earlier version upsampled the minority class
+   before the train/test split, so copies of the same employees landed in both the
+   training and test sets and inflated the scores (RF test ROC-AUC ~0.99). The split
+   now happens first and only the training set is upsampled.
+2. **Upsampling before cross-validation.** `GridSearchCV` then ran on the already
+   upsampled training set, so duplicated minority rows spanned the CV folds and
+   inflated `best_score_` the same way. Each grid now uses an `imblearn` pipeline
+   (`RandomOverSampler` → estimator) so the resampling happens **inside** every fold.
+   The honest leak-free CV ROC-AUCs are LR ~0.84, RF ~0.81, GB ~0.81, in line with the
+   held-out test numbers above.
 
 ---
 
