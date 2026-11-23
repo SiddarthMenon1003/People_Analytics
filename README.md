@@ -72,7 +72,6 @@ updates.
 .
 ├── app.py                     # Streamlit entry point (load, validate, train, route)
 ├── requirements.txt           # Deployed-app dependencies (pinned)
-├── run_app.bat                # Convenience launcher
 ├── data/
 │   └── WA_Fn-UseC_-HR-Employee-Attrition.csv
 ├── backend/                   # Pure logic, no Streamlit
