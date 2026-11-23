@@ -8,14 +8,20 @@ business logic lives in `backend/`, all layout lives in `frontend/`.
 import pandas as pd
 import streamlit as st
 
-from backend.analytics import REQUIRED_COLUMNS, filter_department, validate_dataset
+from backend.analytics import (
+    REQUIRED_COLUMNS,
+    filter_department,
+    get_department_options,
+    invalid_attrition_values,
+    validate_dataset,
+)
 from backend.model import train_workforce_model
 from frontend.components import footer
 from frontend.overview import render_overview
 from frontend.risk_intelligence import render_risk_intelligence
 from frontend.sidebar import (
     NAVIGATION_ITEMS,
-    render_capabilities_panel,
+    render_cost_assumption,
     render_navigation,
     render_sidebar,
     render_system_status,
@@ -55,16 +61,26 @@ def main():
         st.error(f"Missing required columns: {missing_columns}")
         st.stop()
 
-    section, selected_department = render_navigation()
+    bad_attrition = invalid_attrition_values(df)
+
+    if bad_attrition:
+        st.error(
+            "The 'Attrition' column must contain only 'Yes' or 'No'. "
+            f"Unexpected values found: {bad_attrition}"
+        )
+        st.stop()
+
+    section, selected_department = render_navigation(departments=get_department_options(df))
+    cost_per_leaver = render_cost_assumption()
     render_system_status()
-    render_capabilities_panel()
 
     with st.spinner("Initializing Workforce Intelligence Systems..."):
         model_data = train_workforce_model(df)
 
     rf_model = model_data["model"]
-    model_accuracy = model_data["accuracy"]
+    model_metrics = model_data["metrics"]
     X = model_data["X"]
+    encoders = model_data["encoders"]
 
     filtered_df = filter_department(df, selected_department)
 
@@ -77,15 +93,20 @@ def main():
             filtered_df=filtered_df,
             df=df,
             selected_department=selected_department,
-            model_accuracy=model_accuracy,
+            model_metrics=model_metrics,
         ),
         lambda: render_workforce_analytics(
             filtered_df=filtered_df,
+            df=df,
             selected_department=selected_department,
         ),
         lambda: render_risk_intelligence(
             filtered_df=filtered_df,
             selected_department=selected_department,
+            X=X,
+            rf_model=rf_model,
+            encoders=encoders,
+            cost_per_leaver=cost_per_leaver,
         ),
         lambda: render_strategic_insights(
             filtered_df=filtered_df,
@@ -93,6 +114,8 @@ def main():
             selected_department=selected_department,
             X=X,
             rf_model=rf_model,
+            encoders=encoders,
+            cost_per_leaver=cost_per_leaver,
         ),
     ]
 

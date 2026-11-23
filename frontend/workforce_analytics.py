@@ -11,6 +11,7 @@ from backend.insights_engine import (
 )
 from backend.risk_engine import classify_risk, get_risk_severity
 from backend.analytics import (
+    get_department_comparison,
     get_overtime_distribution_metrics,
     get_satisfaction_metrics,
     get_workforce_metrics,
@@ -25,7 +26,7 @@ def _styled_layout(**overrides):
     return layout
 
 
-def render_workforce_analytics(filtered_df, selected_department):
+def render_workforce_analytics(filtered_df, df, selected_department):
     """Render the Workforce Analytics page."""
 
     metrics = get_workforce_metrics(filtered_df)
@@ -39,14 +40,14 @@ def render_workforce_analytics(filtered_df, selected_department):
     no_overtime_attrition_rate = metrics["no_overtime_attrition_rate"]
     workforce_stability_score = metrics["workforce_stability_score"]
 
-    department_content = get_workforce_department_content(selected_department)
+    department_content = get_workforce_department_content(get_department_comparison(df, selected_department))
     stability_risk = classify_risk(100 - stability_score)
 
     page_header(
         eyebrow="Operational Intelligence Layer",
         title="Workforce Performance Snapshot",
         description=(
-            "Real-time operational metrics on overtime exposure, income, "
+            "Operational metrics on overtime exposure, income, "
             "attrition, and department-level workforce distribution."
         ),
         badge_text="\U0001F4CA Workforce Analytics Active",
@@ -56,7 +57,7 @@ def render_workforce_analytics(filtered_df, selected_department):
     kpi_row(
         [
             {"icon": "⏱️", "label": "Overtime Workforce", "value": f"{distribution_metrics['overtime_pct']}%", "accent": STATUS_CRITICAL},
-            {"icon": "\U0001F4B0", "label": "Average Monthly Income", "value": f"₹{avg_income:,.0f}", "accent": "#60A5FA"},
+            {"icon": "\U0001F4B0", "label": "Average Monthly Income", "value": f"${avg_income:,.0f}", "accent": "#60A5FA"},
             {"icon": "\U0001F4C9", "label": "Attrition Rate", "value": f"{dept_attrition}%", "accent": "#A78BFA"},
         ]
     )
@@ -112,7 +113,7 @@ def render_workforce_analytics(filtered_df, selected_department):
                 **PLOTLY_AXIS, showgrid=True, visible=False, range=[0, dept_counts.values.max() * 1.25]
             )
 
-            st.plotly_chart(fig_dist, use_container_width=True, config={"displayModeBar": False})
+            st.plotly_chart(fig_dist, width="stretch", config={"displayModeBar": False})
 
     # =========================================================
     # OVERTIME & BURNOUT ANALYSIS
@@ -178,7 +179,7 @@ def render_workforce_analytics(filtered_df, selected_department):
             )
         )
         fig_gauge.update_layout(**_styled_layout(height=260))
-        st.plotly_chart(fig_gauge, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig_gauge, width="stretch", config={"displayModeBar": False})
 
         kpi_row(
             [
@@ -213,7 +214,7 @@ def render_workforce_analytics(filtered_df, selected_department):
         fig_composition.update_xaxes(visible=False)
         fig_composition.update_yaxes(visible=False)
 
-        st.plotly_chart(fig_composition, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig_composition, width="stretch", config={"displayModeBar": False})
 
         kpi_row(
             [
@@ -280,7 +281,7 @@ def render_workforce_analytics(filtered_df, selected_department):
         fig.update_layout(**_styled_layout(height=380, title="Attrition by Job Satisfaction", showlegend=False))
         fig.update_xaxes(title="Job Satisfaction Level", **PLOTLY_AXIS)
         fig.update_yaxes(title="Attrition Rate", tickformat=".0%", **PLOTLY_AXIS)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     with sat2:
         fig = go.Figure(
@@ -293,7 +294,7 @@ def render_workforce_analytics(filtered_df, selected_department):
         fig.update_layout(**_styled_layout(height=380, title="Work-Life Balance Impact", showlegend=False))
         fig.update_xaxes(title="Work-Life Balance Rating", **PLOTLY_AXIS)
         fig.update_yaxes(title="Attrition Rate", tickformat=".0%", **PLOTLY_AXIS)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     # =========================================================
     # WORKFORCE LIFECYCLE ANALYSIS
@@ -316,7 +317,7 @@ def render_workforce_analytics(filtered_df, selected_department):
         fig.update_layout(**_styled_layout(height=380, title="Attrition by Employee Tenure", showlegend=False))
         fig.update_xaxes(title="Years at Company", **PLOTLY_AXIS)
         fig.update_yaxes(title="Attrition Rate", tickformat=".0%", **PLOTLY_AXIS)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     with lifecycle2:
         fig = go.Figure()
@@ -327,6 +328,4 @@ def render_workforce_analytics(filtered_df, selected_department):
         )
         fig.update_xaxes(title="Monthly Income", **PLOTLY_AXIS)
         fig.update_yaxes(title="Employees", **PLOTLY_AXIS)
-        st.plotly_chart(fig, use_container_width=True)
-
-    divider()
+        st.plotly_chart(fig, width="stretch")

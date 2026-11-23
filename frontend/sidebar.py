@@ -13,25 +13,37 @@ DEPARTMENTS = ["All", "Sales", "Research & Development", "Human Resources"]
 
 
 def render_sidebar():
-    """Render the dataset upload control and return the uploaded file, if any."""
+    """Render the dataset upload control and return the uploaded file, if any.
 
-    st.sidebar.markdown(
-        """
-        <div style="margin-bottom:10px;">
-            <div style="font-size:18px;font-weight:700;color:white;margin-bottom:6px;letter-spacing:-0.4px;">
-                Workforce Dataset Upload
-            </div>
-            <div style="font-size:13px;color:#94A3B8;line-height:1.7;margin-bottom:14px;">
-                Import workforce intelligence datasets for
-                predictive analytics and risk simulation.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    Tucked into a collapsed expander: the bundled sample dataset loads by
+    default, so uploading your own CSV is an optional action rather than the
+    first thing in the sidebar.
+    """
 
-    return st.sidebar.file_uploader(
-        "Upload workforce dataset (CSV)", type=["csv"], label_visibility="collapsed"
+    with st.sidebar.expander("Use your own dataset", expanded=False):
+        st.caption(
+            "Optional — the app loads the sample IBM HR dataset by default. "
+            "Upload a CSV with the same columns to score your own workforce."
+        )
+        return st.file_uploader(
+            "Upload workforce dataset (CSV)", type=["csv"], label_visibility="collapsed"
+        )
+
+
+def render_cost_assumption():
+    """Sidebar input for the replacement-cost-per-leaver assumption.
+
+    Every savings/exposure figure in the app is driven by this number, so it
+    is an explicit, editable assumption rather than a constant hidden in the
+    backend.
+    """
+
+    return st.sidebar.number_input(
+        "Replacement cost per leaver (assumption, $)",
+        min_value=0,
+        value=15000,
+        step=1000,
+        key="cost_per_leaver",
     )
 
 
@@ -72,19 +84,19 @@ def render_navigation(navigation_items=NAVIGATION_ITEMS, departments=DEPARTMENTS
 
 
 def render_system_status():
-    """Persistent sidebar panel showing platform operational status."""
+    """Persistent sidebar panel listing what each dashboard page covers."""
 
     st.sidebar.markdown(
         """
         <div style='background:rgba(255,255,255,0.05); padding:18px; border-radius:16px;
         border:1px solid rgba(255,255,255,0.08); margin-top:18px;'>
-            <h4 style='color:white;margin-bottom:12px;'>System Status</h4>
+            <h4 style='color:white;margin-bottom:12px;'>Dashboard Features</h4>
             <p style='color:#D1D5DB;line-height:1.8;font-size:14px;'>
-                \U0001F7E2 Real-Time Workforce Monitoring<br>
-                \U0001F7E2 Predictive Risk Scoring<br>
-                \U0001F7E2 Department Intelligence Active<br>
-                \U0001F7E2 Workforce Forecasting Enabled<br>
-                \U0001F7E2 Executive Decision Support Online
+                Workforce overview &amp; KPIs<br>
+                Overtime &amp; burnout analytics<br>
+                Department risk intelligence<br>
+                Attrition driver modeling<br>
+                Executive decision support
             </p>
         </div>
         """,
@@ -92,23 +104,3 @@ def render_system_status():
     )
 
 
-def render_capabilities_panel():
-    """Persistent sidebar panel listing the platform's core capabilities."""
-
-    st.sidebar.markdown(
-        """
-        <div style='background:linear-gradient(135deg,#1E3A5F 0%,#2563EB 100%); padding:20px;
-        border-radius:18px; margin-top:20px; box-shadow:0px 4px 14px rgba(0,0,0,0.25);'>
-            <h3 style='color:white;margin-bottom:16px;font-size:20px;'>Platform Capabilities</h3>
-            <ul style='color:white;padding-left:18px;line-height:1.9;font-size:14px;'>
-                <li>Predictive Attrition Analytics</li>
-                <li>Workforce Risk Intelligence</li>
-                <li>Strategic Forecasting</li>
-                <li>Executive Decision Support</li>
-                <li>Retention Optimization</li>
-                <li>AI Workforce Simulations</li>
-            </ul>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )

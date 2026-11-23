@@ -3,7 +3,7 @@
 import plotly.graph_objects as go
 import streamlit as st
 
-from backend.analytics import get_risk_metrics
+from backend.analytics import get_org_risk, get_risk_metrics
 from backend.insights_engine import (
     get_cost_exposure,
     get_predictive_intelligence,
@@ -14,7 +14,7 @@ from backend.insights_engine import (
     get_risk_simulation,
     get_risk_summary,
 )
-from backend.risk_engine import classify_risk, get_meter_position
+from backend.model import simulate_overtime_reduction
 from frontend.components import card_eyebrow, divider, executive_card, glass_card, kpi_row, page_header, ring_metric, section_title
 from frontend.theme import PLOTLY_AXIS, PLOTLY_LAYOUT, SEQUENTIAL_BLUE, STATUS_WARNING
 
@@ -25,7 +25,7 @@ def _styled_layout(**overrides):
     return layout
 
 
-def render_risk_intelligence(filtered_df, selected_department):
+def render_risk_intelligence(filtered_df, selected_department, X, rf_model, encoders, cost_per_leaver):
     """Render the Risk Intelligence page."""
 
     page_header(
@@ -43,18 +43,20 @@ def render_risk_intelligence(filtered_df, selected_department):
     # RISK SCORE GENERATION
     # =========================================================
 
-    metrics = get_risk_metrics(filtered_df)
+    metrics = get_risk_metrics(filtered_df, cost_per_leaver)
     high_risk_count = metrics["high_risk_count"]
     avg_risk_score = metrics["avg_risk_score"]
     high_risk_percentage = metrics["high_risk_percentage"]
     retention_probability = metrics["retention_probability"]
     projected_attrition_impact = metrics["projected_attrition_impact"]
-    optimization_gain = metrics["optimization_gain"]
-    simulated_risk_reduction = metrics["simulated_risk_reduction"]
-    projected_risk = metrics["projected_risk"]
     heatmap_data = metrics["heatmap_data"]
 
-    risk_data = classify_risk(high_risk_percentage)
+    # Model-based "remove all overtime" scenario — the honest replacement for
+    # the old fixed 0.18 optimization multiplier.
+    full_sim = simulate_overtime_reduction(rf_model, X, encoders, filtered_df, share=100)
+    optimization_gain = full_sim["reduction_pct"]
+
+    risk_data = get_org_risk(filtered_df)
     risk_color = risk_data["color"]
     executive_position = get_risk_executive_position(risk_data["label"])
 
@@ -103,8 +105,8 @@ def render_risk_intelligence(filtered_df, selected_department):
                 {
                     "icon": "\U0001F4C8",
                     "label": "Optimization Opportunity",
-                    "value": f"+{optimization_gain}%",
-                    "sub": "Predicted retention improvement",
+                    "value": f"-{optimization_gain}%",
+                    "sub": "Predicted risk drop if all overtime removed",
                     "accent": "#A78BFA",
                 }
             ]
@@ -136,7 +138,9 @@ def render_risk_intelligence(filtered_df, selected_department):
     meter_col, snapshot_col = st.columns([1.2, 1])
 
     with meter_col:
-        meter_position = get_meter_position(high_risk_percentage)
+        # Marker position matches the org risk verdict, so the meter and the
+        # card label can never point at different bands.
+        meter_position = {"Low Risk": 18, "Moderate Risk": 42, "High Risk": 76}[risk_data["label"]]
         overtime_share = round((filtered_df["OverTime"] == "Yes").mean() * 100)
 
         with glass_card():
@@ -168,7 +172,7 @@ def render_risk_intelligence(filtered_df, selected_department):
                 ring_metric("#EF4444", f"{high_risk_percentage:.0f}%", "Attrition")
 
     with snapshot_col:
-        risk_driver, risk_driver_signal = get_risk_driver(selected_department)
+        risk_driver, risk_driver_signal = get_risk_driver(filtered_df)
 
         kpi_row(
             [{
@@ -219,7 +223,7 @@ def render_risk_intelligence(filtered_df, selected_department):
     fig.update_layout(**_styled_layout(height=380, title="Feature Importance Analysis", showlegend=False))
     fig.update_xaxes(title="Risk Contribution Score", **PLOTLY_AXIS)
     fig.update_yaxes(categoryorder="total ascending", **PLOTLY_AXIS)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     # =========================================================
     # HIGH-RISK PERSONAS
@@ -256,7 +260,7 @@ def render_risk_intelligence(filtered_df, selected_department):
     fig.update_layout(**_styled_layout(height=380, title="Risk Heatmap: Overtime vs Satisfaction"))
     fig.update_xaxes(title="Job Satisfaction", **PLOTLY_AXIS)
     fig.update_yaxes(title="Overtime Status", **PLOTLY_AXIS)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     # =========================================================
     # SIMULATION, INSIGHTS, COST, PRIORITIES
@@ -264,7 +268,18 @@ def render_risk_intelligence(filtered_df, selected_department):
 
     divider()
     section_title("Predictive Scenario Simulation")
-    st.success(get_risk_simulation(selected_department, simulated_risk_reduction, projected_risk))
+
+    share = st.slider(
+        "Move this % of overtime employees (highest-risk first) off overtime",
+        0,
+        100,
+        20,
+        key="risk_sim_share",
+    )
+    sim = simulate_overtime_reduction(rf_model, X, encoders, filtered_df, share)
+    st.success(
+        get_risk_simulation(selected_department, share, sim["reduction_pct"], sim["leavers_avoided"])
+    )
 
     section_title("Predictive Workforce Insights")
     st.info(get_predictive_intelligence(selected_department, high_risk_count, high_risk_percentage))
@@ -274,5 +289,3 @@ def render_risk_intelligence(filtered_df, selected_department):
 
     section_title("Strategic Action Priorities")
     st.success(get_risk_action_priorities(selected_department))
-
-    divider()

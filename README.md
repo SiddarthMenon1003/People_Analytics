@@ -1,199 +1,128 @@
+# Workforce Intelligence Platform
 
-# Employee Attrition Prediction & Workforce Strategy Optimization
+Predicting employee attrition and turning it into workforce decisions, served as a
+multi-page Streamlit dashboard.
 
-https://workforce-intelligence-platform.onrender.com/
+**Live app:** https://workforce-intelligence-platform.onrender.com/
 
-## Overview
-
-This project focuses on predicting employee attrition and generating business-driven workforce strategies using machine learning and analytics.
-
-The objective is not only to identify employees likely to leave the organization, but also to understand the underlying drivers of attrition and recommend actionable retention strategies.
-
-The project combines:
-- Predictive analytics
-- Workforce segmentation
-- Business strategy
-- Risk scoring
-- HR decision support
+Built on the IBM HR Analytics Employee Attrition dataset (1,470 employees, 16.1%
+attrition).
 
 ---
 
-# Business Problem
+## What it does
 
-Employee attrition creates significant costs for organizations through:
-- Recruitment expenses
-- Training costs
-- Productivity loss
-- Team disruption
+The app loads the HR dataset (or a CSV you upload), trains an attrition model, and
+presents four pages:
 
-This project aims to answer:
+1. **Overview** — headline KPIs (workforce size, attrition rate, high-risk share),
+   the organization-wide risk verdict, and honest model metrics (ROC-AUC and the
+   share of leavers the model catches).
+2. **Workforce Analytics** — overtime and burnout cuts, satisfaction / work-life /
+   tenure / income breakdowns, and department distribution, with narratives computed
+   from the data (not fixed text).
+3. **Risk Intelligence** — per-employee risk scoring, a risk heatmap, and a
+   model-based what-if: move a chosen share of overtime employees (highest-risk
+   first) off overtime and see the predicted change.
+4. **Strategic Insights** — a workforce health index, the model's attrition drivers,
+   a live single-employee predictor, and an impact simulation that converts avoided
+   leavers into a cost estimate.
 
-"How can organizations proactively identify high-risk employees and reduce attrition using data-driven insights?"
-
----
-
-# Dataset
-
-Dataset Used:
-- IBM HR Analytics Employee Attrition Dataset
-
-File:
-WA_Fn-UseC_-HR-Employee-Attrition.csv
-
----
-
-# Project Workflow
-
-## 1. Data Preprocessing
-- Data cleaning
-- Feature engineering
-- Encoding categorical variables
-- Tenure segmentation
-- Income-based feature creation
+Every page reads its risk verdict from one function, so the pages agree with each
+other.
 
 ---
 
-## 2. Exploratory Data Analysis
-Analysis performed on:
-- Attrition distribution
-- Overtime impact
-- Salary trends
-- Satisfaction metrics
-- Tenure patterns
-- Correlation analysis
+## The model
+
+The deployed app trains a **Random Forest** (`class_weight="balanced"`, identifier
+and constant columns dropped, stratified split) on each run and caches it.
+
+Honest held-out metrics on this dataset:
+
+| Metric | Value | Note |
+|---|---|---|
+| ROC-AUC | ~0.79 | ranking quality |
+| Recall (leavers) | ~0.36 | share of actual leavers caught |
+| Precision | ~0.49 | |
+| Accuracy | ~0.83 | a majority-class baseline already scores ~0.84 |
+
+Accuracy is deliberately **not** used as the headline: on a dataset this imbalanced a
+model that predicts "stays" for almost everyone scores ~84% while catching no
+leavers. ROC-AUC and recall describe the model honestly.
+
+The development notebook (`development/`) compares Logistic Regression, Random Forest,
+and Gradient Boosting. Logistic Regression scores the best ROC-AUC (~0.82) and gives
+the most interpretable coefficients; the app keeps the Random Forest for its feature
+importances. All three land in the 0.77–0.82 test ROC-AUC range once the data leak
+(see below) is fixed.
+
+### Assumptions
+
+The dollar figures (cost exposure, projected savings) are driven by a
+**"Replacement cost per leaver"** input in the sidebar (default $15,000). It is an
+editable assumption, not a hidden constant — change it and every dollar figure
+updates.
 
 ---
 
-## 3. Machine Learning Models
+## Project structure
 
-The following models were implemented and compared:
-
-### Logistic Regression
-- Baseline interpretable model
-- Feature coefficient analysis
-
-### Random Forest
-- Non-linear ensemble model
-- Feature importance analysis
-
-### Gradient Boosting
-- Final high-performance predictive model
-- Risk scoring implementation
-
----
-
-## 4. Model Evaluation
-
-Models were evaluated using:
-- Accuracy
-- ROC-AUC
-- Cross-validation
-- ROC Curves
-- Feature Importance
-- Hyperparameter tuning
-
----
-
-## 5. Business Analytics Layer
-
-The project extends beyond prediction into strategic workforce analysis.
-
-### Key Business Insights
-- Overtime is the strongest attrition driver
-- Early tenure employees are highly vulnerable
-- Employees in first 2 years working overtime show the highest attrition risk
-- Compensation and workplace satisfaction significantly impact retention
+```
+.
+├── app.py                     # Streamlit entry point (load, validate, train, route)
+├── requirements.txt           # Deployed-app dependencies (pinned)
+├── run_app.bat                # Convenience launcher
+├── data/
+│   └── WA_Fn-UseC_-HR-Employee-Attrition.csv
+├── backend/                   # Pure logic, no Streamlit
+│   ├── model.py               #   training, single-employee prediction, overtime sim
+│   ├── analytics.py           #   KPI/aggregation calculations, org risk verdict
+│   ├── risk_engine.py         #   per-employee risk scoring and classification
+│   └── insights_engine.py     #   data-driven narrative text
+├── frontend/                  # Layout only
+│   ├── overview.py
+│   ├── workforce_analytics.py
+│   ├── risk_intelligence.py
+│   ├── strategic_insights.py
+│   ├── sidebar.py
+│   ├── components.py          #   reusable UI building blocks
+│   ├── styles.py
+│   └── theme.py
+└── development/
+    ├── Workforce Intelligence Analysis.ipynb   # EDA + model comparison
+    └── requirements.txt       # notebook-only extras (jupyter, matplotlib, seaborn)
+```
 
 ---
 
-## 6. Risk Segmentation & Scoring
+## Running locally
 
-The project includes:
-- Employee risk scoring
-- High-risk employee identification
-- Workforce segmentation
-- Interaction analysis
+```bash
+# from the repo root, in a Python 3 environment
+pip install -r requirements.txt
+streamlit run app.py
+```
 
-This enables proactive HR intervention and workforce planning.
+For the analysis notebook:
 
----
-
-# Strategic Recommendations
-
-Based on the analysis, the following actions are recommended:
-
-1. Reduce overtime exposure for early-tenure employees
-2. Strengthen onboarding and engagement programs
-3. Implement targeted retention strategies
-4. Monitor high-risk employees proactively
-5. Optimize compensation structures
+```bash
+pip install -r development/requirements.txt
+jupyter lab
+```
 
 ---
 
-# Estimated Business Impact
+## A note on the notebook
 
-Reducing attrition by even a small percentage can generate substantial savings through:
-- Reduced hiring costs
-- Lower training expenses
-- Improved workforce stability
-
-The project demonstrates how predictive analytics can support strategic HR decision-making.
-
----
-
-# Technologies Used
-
-- Python
-- Pandas
-- NumPy
-- Matplotlib
-- Seaborn
-- Scikit-learn
-- Jupyter Notebook
+An earlier version of the notebook upsampled the minority class **before** the
+train/test split, so copies of the same employees landed in both the training and
+test sets and inflated the scores (RF test ROC-AUC ~0.99). This is fixed: the split
+now happens first and only the training set is upsampled, which brings the numbers
+down to the honest range quoted above.
 
 ---
 
-# Installation
+## Author
 
-Install required libraries using:
-
-pip install -r requirements_clean_updated.txt
-
----
-
-# Project Structure
-
-├── Attrition Prediction Models.ipynb
-├── WA_Fn-UseC_-HR-Employee-Attrition.csv
-├── requirements_clean_updated.txt
-├── requirements.txt
-└── README.md
-
----
-
-# Key Outcomes
-
-- Built and compared multiple ML models
-- Identified major attrition drivers
-- Developed employee risk scoring system
-- Generated business-oriented workforce insights
-- Proposed actionable retention strategies
-
----
-
-# Future Improvements
-
-Potential future enhancements:
-- Interactive dashboard using Streamlit or Power BI
-- Real-time attrition monitoring
-- SHAP explainability integration
-- Deployment as HR analytics tool
-
----
-
-# Author
-
-Siddarth Menon
-
-Master’s Student — Data Science & AI Strategy
-emlyon business school
+Siddarth Menon — Master's student, Data Science & AI Strategy, emlyon business school.

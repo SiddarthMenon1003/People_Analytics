@@ -41,16 +41,6 @@ def get_risk_severity(score):
     return "error", "\U0001f534 CRITICAL RISK — Severe workforce instability detected."
 
 
-def get_meter_position(risk_percentage):
-    """Marker position (0-100) along the Low/Moderate/High risk meter."""
-
-    label = classify_risk(risk_percentage)["label"]
-
-    positions = {"Low Risk": 18, "Moderate Risk": 42, "High Risk": 76}
-
-    return positions[label]
-
-
 def classify_workforce_health(retention_percent):
     """Classify overall workforce health from the retention rate."""
 
@@ -78,20 +68,6 @@ def classify_overtime_risk(overtime_percent):
     return {"label": "Low", "color": GOOD_COLOR, "severity": "healthy"}
 
 
-def get_primary_driver(attrition_rate, overtime_percentage, engagement_score):
-    """Identify the dominant workforce risk driver among three signals."""
-
-    drivers = {
-        "Overtime Exposure": overtime_percentage,
-        "Attrition Risk": attrition_rate,
-        "Employee Engagement": engagement_score,
-    }
-
-    top_driver = max(drivers, key=drivers.get)
-
-    return {"driver": top_driver, "score": round(drivers[top_driver], 1)}
-
-
 def generate_risk_scores(dataframe):
     """Attach a weighted RiskScore (0-100) and RiskLevel to each employee."""
 
@@ -108,22 +84,3 @@ def generate_risk_scores(dataframe):
     risk_df["RiskLevel"] = risk_df["RiskScore"].apply(lambda x: classify_risk(x)["label"])
 
     return risk_df
-
-
-def calculate_live_attrition_risk(overtime, age, job_satisfaction, worklife, years_company, monthly_income):
-    """Simplified, rule-based risk estimate for the interactive predictor.
-
-    A lighter-weight heuristic than the trained Random Forest model — used
-    so the "live prediction" slider panel responds instantly without a
-    model call on every widget change.
-    """
-
-    return round(
-        (overtime == "Yes") * 35
-        + (job_satisfaction <= 2) * 25
-        + (worklife <= 2) * 20
-        + (years_company <= 2) * 10
-        + (monthly_income < 4000) * 5
-        + (age < 30) * 5,
-        1,
-    )

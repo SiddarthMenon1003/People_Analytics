@@ -5,7 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from backend.analytics import get_department_risk_ranking, get_impact_simulation, get_strategic_metrics
+from backend.analytics import get_department_comparison, get_department_risk_ranking, get_strategic_metrics
 from backend.insights_engine import (
     get_department_content,
     get_executive_position,
@@ -15,7 +15,7 @@ from backend.insights_engine import (
     get_strategic_outlook,
     get_strategy_maturity,
 )
-from backend.risk_engine import calculate_live_attrition_risk, classify_risk
+from backend.model import predict_employee_risk, simulate_overtime_reduction
 from frontend.components import (
     card_eyebrow,
     divider,
@@ -37,25 +37,35 @@ def _styled_layout(**overrides):
     return layout
 
 
-def render_strategic_insights(filtered_df, df, selected_department, X, rf_model):
+def render_strategic_insights(filtered_df, df, selected_department, X, rf_model, encoders, cost_per_leaver):
     """Render the Strategic Insights page."""
 
-    metrics = get_strategic_metrics(filtered_df)
+    metrics = get_strategic_metrics(filtered_df, cost_per_leaver)
     high_risk_count = metrics["high_risk_count"]
     strategic_risk_score = metrics["strategic_risk_score"]
     strategic_retention_score = metrics["strategic_retention_score"]
     projected_attrition_impact = metrics["projected_attrition_impact"]
-    optimization_gain = metrics["optimization_gain"]
-    forecast_improvement = metrics["forecast_improvement"]
-    projected_stability = metrics["projected_stability"]
     health_index = metrics["health_index"]
     risk_label = metrics["risk_label"]
     signal_color = metrics["signal_color"]
     overtime_percentage = metrics["overtime_percentage"]
+    total_employees = metrics["total_employees"]
+
+    # Headline forecast at a default 20% overtime reduction, scored by the
+    # model — no fixed multipliers. The interactive what-if lives lower down.
+    headline_sim = simulate_overtime_reduction(rf_model, X, encoders, filtered_df, share=20)
+    optimization_gain = headline_sim["reduction_pct"]
+    retention_points = (
+        round(headline_sim["leavers_avoided"] / total_employees * 100, 1) if total_employees else 0.0
+    )
+    forecast_improvement = retention_points
+    projected_stability = round(min(strategic_retention_score + retention_points, 100), 1)
+
+    comparison = get_department_comparison(df, selected_department)
 
     outlook_data = get_strategic_outlook(risk_label, selected_department)
     maturity_data = get_strategy_maturity(health_index)
-    department_content = get_department_content(selected_department, optimization_gain)
+    department_content = get_department_content(comparison)
     executive_position = get_executive_position(risk_label)
     executive_priority = get_executive_priority(selected_department)
     health_assessment = get_health_assessment(health_index, selected_department)
@@ -80,7 +90,7 @@ def render_strategic_insights(filtered_df, df, selected_department, X, rf_model)
             {"label": "Workforce Posture", "value": executive_position["title"], "accent": "#38BDF8"},
             {"label": "Risk Score", "value": f"{strategic_risk_score}/100", "accent": "#A78BFA"},
             {"label": "Retention Strength", "value": f"{strategic_retention_score}%", "accent": STATUS_GOOD},
-            {"label": "Optimization Gain", "value": f"+{optimization_gain}%", "accent": "#60A5FA"},
+            {"label": "Risk Drop @20% OT off", "value": f"-{optimization_gain}%", "accent": "#60A5FA"},
         ]
     )
 
@@ -211,7 +221,7 @@ def render_strategic_insights(filtered_df, df, selected_department, X, rf_model)
 
     st.dataframe(
         priority_df,
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         height=table_height(len(priority_df)),
     )
@@ -247,7 +257,7 @@ def render_strategic_insights(filtered_df, df, selected_department, X, rf_model)
             )
         )
         fig_forecast.update_layout(**_styled_layout(height=240))
-        st.plotly_chart(fig_forecast, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig_forecast, width="stretch", config={"displayModeBar": False})
 
         st.markdown(
             """
@@ -290,7 +300,8 @@ def render_strategic_insights(filtered_df, df, selected_department, X, rf_model)
                     +{forecast_improvement}%
                 </div>
                 <div style="font-size:14px;line-height:1.7;color:#CBD5E1;">
-                    Estimated workforce stability improvement through targeted retention initiatives.
+                    Model-estimated retention gain from moving the highest-risk 20% of overtime
+                    employees off overtime.
                 </div>
             </div>
             """,
@@ -319,7 +330,7 @@ def render_strategic_insights(filtered_df, df, selected_department, X, rf_model)
     ranking_df = get_department_risk_ranking(df)
     st.dataframe(
         ranking_df,
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         height=table_height(len(ranking_df)),
     )
@@ -328,13 +339,27 @@ def render_strategic_insights(filtered_df, df, selected_department, X, rf_model)
     st.success(department_content["decision"])
 
     section_title("Executive Impact Simulation")
-    impact_metrics = get_impact_simulation(projected_attrition_impact, optimization_gain)
+
+    sim_share = st.slider(
+        "Move this % of overtime employees (highest-risk first) off overtime",
+        0,
+        100,
+        20,
+        key="strategic_sim_share",
+    )
+    impact_sim = simulate_overtime_reduction(rf_model, X, encoders, filtered_df, sim_share)
+    projected_retention_gain = (
+        round(impact_sim["leavers_avoided"] / total_employees * 100, 1) if total_employees else 0.0
+    )
+    projected_savings = round(impact_sim["leavers_avoided"] * cost_per_leaver)
+
     st.success(
-        get_optimization_projection(
-            selected_department,
-            impact_metrics["projected_retention_gain"],
-            impact_metrics["projected_savings"],
-        )
+        get_optimization_projection(selected_department, projected_retention_gain, projected_savings)
+    )
+    st.caption(
+        f"Assumes ${cost_per_leaver:,.0f} replacement cost per leaver (editable in the sidebar); "
+        f"≈{impact_sim['leavers_avoided']} fewer expected leavers of {impact_sim['overtime_total']} "
+        f"overtime employees in scope."
     )
 
     section_title("Workforce Strategy Maturity")
@@ -371,7 +396,7 @@ organizational maturity in managing:
         color_continuous_scale="Blues",
     )
     fig_ml.update_layout(**_styled_layout(height=520, yaxis=dict(categoryorder="total ascending")))
-    st.plotly_chart(fig_ml, use_container_width=True)
+    st.plotly_chart(fig_ml, width="stretch")
 
     # =========================================================
     # LIVE EMPLOYEE ATTRITION PREDICTION
@@ -392,19 +417,32 @@ organizational maturity in managing:
         job_satisfaction = st.slider("Job Satisfaction", 1, 4, 2)
         worklife = st.slider("Work-Life Balance", 1, 4, 2)
 
-    risk_probability = calculate_live_attrition_risk(
-        overtime, age, job_satisfaction, worklife, years_company, monthly_income
+    # Scored by the trained model, not a hand-weighted rule. Because
+    # class_weight="balanced" inflates raw probabilities, the honest headline
+    # is the percentile — how this employee ranks against the whole workforce.
+    score, percentile = predict_employee_risk(
+        rf_model,
+        X,
+        encoders,
+        Age=age,
+        MonthlyIncome=monthly_income,
+        YearsAtCompany=years_company,
+        OverTime=overtime,
+        JobSatisfaction=job_satisfaction,
+        WorkLifeBalance=worklife,
     )
-    prediction_risk = classify_risk(risk_probability)
 
-    prediction_message = f"{prediction_risk['status']}: {risk_probability}%"
-
-    if prediction_risk["label"] == "Low Risk":
-        st.success(prediction_message)
-    elif prediction_risk["label"] == "Moderate Risk":
-        st.warning(prediction_message)
+    if percentile >= 90:
+        band_label, render = "High Risk", st.error
+    elif percentile >= 70:
+        band_label, render = "Moderate Risk", st.warning
     else:
-        st.error(prediction_message)
+        band_label, render = "Low Risk", st.success
+
+    render(
+        f"{band_label} — riskier than {percentile:.0f}% of employees "
+        f"(model attrition probability {score:.0%})"
+    )
 
     # =========================================================
     # FINAL EXECUTIVE SUMMARY

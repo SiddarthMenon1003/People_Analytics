@@ -1,0 +1,20 @@
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Virtual environments
+.venv/
+venv/
+
+# Environment / secrets
+.env
+
+# OS / editor cruft
+.DS_Store
+
+# Local tooling / agent config
+.claude/
+
+# Stray exports / unrelated data (not part of the project)
+Attrition_and_Hiring.md
+Geodata.txt

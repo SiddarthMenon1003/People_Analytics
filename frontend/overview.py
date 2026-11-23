@@ -7,20 +7,16 @@ import streamlit as st
 from backend.analytics import (
     get_department_intelligence,
     get_department_overview_metrics,
+    get_org_risk,
     get_overview_metrics,
 )
 from backend.insights_engine import get_overview_executive_brief, get_overview_insights
-from backend.risk_engine import (
-    classify_overtime_risk,
-    classify_risk,
-    classify_workforce_health,
-    get_primary_driver,
-)
+from backend.risk_engine import classify_overtime_risk, classify_workforce_health
 from frontend.components import card_title, divider, glass_card, kpi_row, page_header, section_title, stat_rows
 from frontend.theme import STATUS_CRITICAL, STATUS_GOOD, STATUS_WARNING
 
 
-def render_overview(filtered_df, df, selected_department, model_accuracy):
+def render_overview(filtered_df, df, selected_department, model_metrics):
     """Render the Overview page."""
 
     page_header(
@@ -28,9 +24,9 @@ def render_overview(filtered_df, df, selected_department, model_accuracy):
         title="Workforce Overview",
         description=(
             "Predictive attrition analytics, workforce risk detection, and "
-            "executive-level organizational insights, updated in real time."
+            "executive-level organizational insights."
         ),
-        badge_text="● Live Analysis Active",
+        badge_text="● Analysis Active",
         badge_color=STATUS_GOOD,
     )
 
@@ -46,7 +42,8 @@ def render_overview(filtered_df, df, selected_department, model_accuracy):
     overtime_percentage = overview_metrics["overtime_percentage"]
     retention_percent = overview_metrics["retention_percent"]
 
-    risk_data = classify_risk(attrition_rate)
+    risk_data = get_org_risk(filtered_df)
+    high_risk_percentage = risk_data["high_risk_percentage"]
     overview_title, attention_area = get_overview_executive_brief(risk_data["label"])
 
     # =========================================================
@@ -71,8 +68,8 @@ def render_overview(filtered_df, df, selected_department, model_accuracy):
             },
             {
                 "icon": "\U0001F916",
-                "label": "Model Confidence",
-                "value": f"{model_accuracy * 100:.1f}%",
+                "label": "Model ROC-AUC",
+                "value": f"{model_metrics['roc_auc']}",
                 "accent": STATUS_GOOD,
             },
         ]
@@ -88,8 +85,8 @@ def render_overview(filtered_df, df, selected_department, model_accuracy):
         [
             {"icon": "\U0001F465", "label": "Total Workforce", "value": f"{total_employees:,}", "accent": "#60A5FA"},
             {"icon": "\U0001F4C9", "label": "Attrition Rate", "value": f"{attrition_rate}%", "accent": STATUS_CRITICAL},
-            {"icon": "⚠️", "label": "High-Risk Workforce (%)", "value": f"{overtime_percentage}%", "accent": STATUS_WARNING},
-            {"icon": "\U0001F9E0", "label": "Model Accuracy", "value": f"{model_accuracy * 100:.1f}%", "accent": STATUS_GOOD},
+            {"icon": "⚠️", "label": "High-Risk Workforce (%)", "value": f"{high_risk_percentage}%", "accent": STATUS_WARNING},
+            {"icon": "\U0001F9E0", "label": "Leavers caught (recall)", "value": f"{model_metrics['recall'] * 100:.0f}%", "accent": STATUS_GOOD},
         ]
     )
 
@@ -130,11 +127,23 @@ def render_overview(filtered_df, df, selected_department, model_accuracy):
 
     with chart1:
         health_data = classify_workforce_health(retention_percent)
-        engagement_score = round(((100 - attrition_rate) + (100 - overtime_percentage)) / 2, 1)
-        driver_data = get_primary_driver(attrition_rate, overtime_percentage, engagement_score)
-        driver_score = round(overtime_percentage if overtime_percentage > 30 else engagement_score)
 
-        with glass_card():
+        # Overtime attrition multiplier: how much more often overtime workers
+        # leave than non-overtime workers, for the current department filter.
+        ot_mask = filtered_df["OverTime"] == "Yes"
+        ot_attrition = (
+            round((filtered_df[ot_mask]["Attrition"] == "Yes").mean() * 100, 1)
+            if ot_mask.any()
+            else 0.0
+        )
+        no_ot_attrition = (
+            round((filtered_df[~ot_mask]["Attrition"] == "Yes").mean() * 100, 1)
+            if (~ot_mask).any()
+            else 0.0
+        )
+        overtime_ratio = round(ot_attrition / no_ot_attrition, 1) if no_ot_attrition else 0.0
+
+        with glass_card("height:100%;"):
             card_title("Workforce Health Intelligence")
 
             stat_rows(
@@ -162,12 +171,11 @@ def render_overview(filtered_df, df, selected_department, model_accuracy):
                     {
                         "icon": "⚡",
                         "color": "#FB923C",
-                        "title": "Primary Workforce Driver",
-                        "subtitle": driver_data["driver"],
-                        "value": f"{driver_score}%",
-                        "caption": "influence",
-                        "show_bar": True,
-                        "bar_pct": driver_score,
+                        "title": "Overtime Attrition Multiplier",
+                        "subtitle": f"{ot_attrition}% on overtime vs {no_ot_attrition}% without",
+                        "value": f"{overtime_ratio}×",
+                        "caption": "ratio",
+                        "show_bar": False,
                     },
                     {
                         "icon": "↗",
@@ -188,7 +196,7 @@ def render_overview(filtered_df, df, selected_department, model_accuracy):
         dept_engagement = department_metrics["dept_engagement"]
         overtime_data = classify_overtime_risk(dept_overtime)
 
-        with glass_card():
+        with glass_card("height:100%;"):
             card_title("Workforce Instability Distribution")
 
             stat_rows(
@@ -216,10 +224,10 @@ def render_overview(filtered_df, df, selected_department, model_accuracy):
                     {
                         "icon": "◉",
                         "color": "#A7F3D0",
-                        "title": "Engagement Index",
-                        "subtitle": "Workforce sentiment",
+                        "title": "Workforce Balance",
+                        "subtitle": "Retention & non-overtime blend",
                         "value": f"{dept_engagement}%",
-                        "caption": "engagement",
+                        "caption": "index",
                         "show_bar": True,
                         "bar_pct": dept_engagement,
                     },

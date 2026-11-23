@@ -53,22 +53,11 @@ Recommended HR department initiatives:
 def get_department_recommendation(selected_department):
     """Department-level workforce recommendation copy."""
 
-    return _DEPARTMENT_RECOMMENDATIONS[selected_department]
+    return _DEPARTMENT_RECOMMENDATIONS.get(selected_department, _DEPARTMENT_RECOMMENDATIONS["All"])
 
 
 _DEPARTMENT_CONTENT = {
     "All": {
-        "narrative": """
-AI workforce intelligence predicts that the organization
-currently faces moderate workforce sustainability pressure
-driven primarily by overtime exposure, declining engagement,
-and emerging retention instability.
-
-Predictive workforce simulations indicate that proactive
-burnout reduction initiatives and workforce balancing
-strategies could improve long-term workforce stability
-by approximately **{optimization_gain}%**.
-""",
         "decision": """
 ### Recommended Immediate Executive Action
 
@@ -90,11 +79,6 @@ long-term organizational sustainability.
 """,
     },
     "Sales": {
-        "narrative": """
-AI workforce intelligence identifies the Sales department
-as experiencing elevated performance-related operational
-pressure and workforce fatigue exposure.
-""",
         "decision": """
 ### Recommended Sales Leadership Action
 
@@ -108,11 +92,6 @@ workforce sustainability challenges.
 """,
     },
     "Research & Development": {
-        "narrative": """
-AI workforce intelligence identifies long-term project
-fatigue and workforce engagement sustainability as
-primary retention challenges within R&D.
-""",
         "decision": """
 ### Recommended R&D Leadership Action
 
@@ -125,11 +104,6 @@ pressure linked to long-term engagement and burnout risk.
 """,
     },
     "Human Resources": {
-        "narrative": """
-AI workforce intelligence identifies workforce coordination
-pressure and administrative workload exposure as primary
-drivers of operational fatigue within HR.
-""",
         "decision": """
 ### Recommended HR Leadership Action
 
@@ -144,13 +118,35 @@ pressure associated with coordination and support demands.
 }
 
 
-def get_department_content(selected_department, optimization_gain):
-    """Department AI narrative / executive decision / summary copy block."""
+def get_department_content(comparison):
+    """Executive narrative / decision / summary block for a department.
 
-    content = _DEPARTMENT_CONTENT[selected_department]
+    The narrative is built from real figures in `comparison` (attrition vs
+    the company average, overtime rate, composite-risk rank) so it can't
+    contradict the data; the decision/summary copy stays qualitative.
+    """
+
+    scope = comparison["scope"]
+
+    if scope == "All":
+        narrative = (
+            f"The data shows {comparison['org_attrition']}% attrition across the organization, "
+            f"with {comparison['overtime_rate']}% of employees on overtime — the clearest and "
+            f"most consistently measurable attrition driver in this dataset."
+        )
+    else:
+        direction = "above" if comparison["above_avg"] else "below"
+        narrative = (
+            f"The data shows the {scope} department at {comparison['dept_attrition']}% attrition, "
+            f"{direction} the {comparison['org_attrition']}% company average, with "
+            f"{comparison['overtime_rate']}% on overtime and a composite-risk rank of "
+            f"#{comparison['rank']} of {comparison['n_depts']} departments."
+        )
+
+    content = _DEPARTMENT_CONTENT.get(scope, _DEPARTMENT_CONTENT["All"])
 
     return {
-        "narrative": content["narrative"].format(optimization_gain=optimization_gain),
+        "narrative": narrative,
         "decision": content["decision"],
         "summary": content["summary"],
     }
@@ -179,46 +175,67 @@ _EXECUTIVE_PRIORITIES = {
 def get_executive_priority(selected_department):
     """Top executive priority for the selected department."""
 
-    return _EXECUTIVE_PRIORITIES[selected_department]
+    return _EXECUTIVE_PRIORITIES.get(selected_department, _EXECUTIVE_PRIORITIES["All"])
 
 
-_WORKFORCE_DEPARTMENT_CONTENT = {
-    "All": {
-        "signal_title": "Organizational Workforce Signal",
-        "signal_text": "Enterprise workforce analytics indicate moderate operational stability with department-specific workforce variation.",
-    },
-    "Sales": {
-        "signal_title": "High Workforce Pressure",
-        "signal_text": "Sales operations show elevated overtime exposure and stronger attrition sensitivity, indicating higher workforce pressure and retention risk.",
-    },
-    "Research & Development": {
-        "signal_title": "Stable Workforce Environment",
-        "signal_text": "R&D demonstrates stronger workforce stability, lower attrition sensitivity, and healthier organizational continuity.",
-    },
-    "Human Resources": {
-        "signal_title": "Balanced Workforce Activity",
-        "signal_text": "HR operations reflect balanced workforce allocation with controlled overtime exposure and moderate organizational stability.",
-    },
+def get_workforce_department_content(comparison):
+    """Operational workforce signal built from real department figures.
+
+    Replaces the old fixed copy (which claimed, e.g., that Sales had the
+    highest overtime and that R&D was "stable" — both contradicted by the
+    data) with a title/text derived from `comparison`.
+    """
+
+    scope = comparison["scope"]
+
+    if scope == "All":
+        return {
+            "signal_title": "Organizational Workforce Signal",
+            "signal_text": (
+                f"Across the organization, attrition is {comparison['org_attrition']}% with "
+                f"{comparison['overtime_rate']}% of employees on overtime. Overtime is the clearest "
+                f"attrition driver in the data."
+            ),
+        }
+
+    direction = "above" if comparison["above_avg"] else "below"
+    title = "Elevated Workforce Pressure" if comparison["above_avg"] else "Below-Average Attrition"
+
+    return {
+        "signal_title": title,
+        "signal_text": (
+            f"The {scope} department shows {comparison['dept_attrition']}% attrition "
+            f"({direction} the {comparison['org_attrition']}% company average) with "
+            f"{comparison['overtime_rate']}% on overtime, ranking #{comparison['rank']} "
+            f"of {comparison['n_depts']} departments on composite risk."
+        ),
+    }
+
+
+_RISK_DRIVER_SIGNALS = {
+    "Overtime Exposure": "Workforce Burnout Signal",
+    "Low Job Satisfaction": "Engagement Risk Signal",
+    "Poor Work-Life Balance": "Burnout Pressure Signal",
 }
 
 
-def get_workforce_department_content(selected_department):
-    """Operational workforce signal title/text for the selected department."""
+def get_risk_driver(filtered_df):
+    """Most prevalent risk factor (name, signal) for the current scope.
 
-    return _WORKFORCE_DEPARTMENT_CONTENT[selected_department]
+    Computed from the data — the share of employees on overtime, with low
+    job satisfaction, or with poor work-life balance — rather than a fixed
+    per-department label. "Travel Fatigue" is gone: BusinessTravel is not a
+    factor the app actually scores on.
+    """
 
+    factors = {
+        "Overtime Exposure": (filtered_df["OverTime"] == "Yes").mean(),
+        "Low Job Satisfaction": (filtered_df["JobSatisfaction"] <= 2).mean(),
+        "Poor Work-Life Balance": (filtered_df["WorkLifeBalance"] <= 2).mean(),
+    }
+    name = max(factors, key=factors.get)
 
-_RISK_DRIVER_MAP = {
-    "Sales": ("Travel Fatigue", "Field Workforce Burnout"),
-    "Research & Development": ("Overtime Exposure", "Workforce Burnout Signal"),
-    "Human Resources": ("Retention Pressure", "Talent Stability Concern"),
-}
-
-
-def get_risk_driver(selected_department):
-    """Primary risk driver (name, signal) tuple for the selected department."""
-
-    return _RISK_DRIVER_MAP.get(selected_department, ("Overtime Exposure", "Cross-Department Burnout"))
+    return name, _RISK_DRIVER_SIGNALS[name]
 
 
 _RISK_PERSONAS = {
@@ -308,7 +325,7 @@ Employees demonstrating:
 def get_risk_personas(selected_department):
     """(Persona 1, Persona 2) high-risk workforce personas."""
 
-    return _RISK_PERSONAS[selected_department]
+    return _RISK_PERSONAS.get(selected_department, _RISK_PERSONAS["All"])
 
 
 _ACTION_PRIORITIES = {
@@ -350,7 +367,7 @@ _ACTION_PRIORITIES = {
 def get_risk_action_priorities(selected_department):
     """Ranked strategic action priorities for the selected department."""
 
-    return _ACTION_PRIORITIES[selected_department]
+    return _ACTION_PRIORITIES.get(selected_department, _ACTION_PRIORITIES["All"])
 
 
 _PREDICTIVE_INTELLIGENCE = {
@@ -381,8 +398,10 @@ employee support fatigue, and sustained administrative load.
 def get_predictive_intelligence(selected_department, high_risk_count, high_risk_percentage):
     """Predictive workforce intelligence narrative for the selected scope."""
 
-    if selected_department == "All":
-        return f"""
+    if selected_department != "All" and selected_department in _PREDICTIVE_INTELLIGENCE:
+        return _PREDICTIVE_INTELLIGENCE[selected_department]
+
+    return f"""
 ### Organization-Wide Predictive Intelligence
 
 Predictive workforce analytics indicate that
@@ -395,8 +414,6 @@ employees within the high-risk workforce category,
 representing approximately **{high_risk_percentage}%**
 of the workforce population.
 """
-
-    return _PREDICTIVE_INTELLIGENCE[selected_department]
 
 
 # =============================================================================
@@ -588,31 +605,25 @@ challenges.
 """
 
 
-def get_risk_simulation(selected_department, simulated_risk_reduction, projected_risk):
-    """Predictive risk-reduction scenario narrative."""
+def get_risk_simulation(selected_department, share, reduction_pct, leavers_avoided):
+    """Model-based overtime-reduction scenario narrative.
 
-    if selected_department == "All":
-        return f"""
-### Workforce Optimization Simulation
+    The numbers come from re-scoring the workforce with the trained model
+    after moving the highest-risk `share`% of overtime employees off
+    overtime — not a fixed multiplier.
+    """
 
-If overtime exposure is reduced by approximately 20%:
-
-- Estimated high-risk workforce reduces by **{simulated_risk_reduction}%**
-- Projected workforce risk exposure drops to **{projected_risk}%**
-- Workforce stability and retention probability improve significantly
-- Organizational burnout exposure decreases across critical employee groups
-"""
+    scope = "the organization" if selected_department == "All" else f"the {selected_department} department"
 
     return f"""
-### {selected_department} Workforce Optimization Simulation
+### Workforce Optimization Simulation (model-based)
 
-If overtime exposure and workload imbalance are reduced
-within the {selected_department} department:
+Moving the highest-risk **{share}%** of overtime employees in {scope} off overtime,
+the trained model predicts:
 
-- Estimated department risk exposure reduces by **{simulated_risk_reduction}%**
-- Projected department instability decreases to **{projected_risk}%**
-- Employee engagement and retention stability improve
-- Department workforce sustainability strengthens significantly
+- Total predicted attrition risk falls by **{reduction_pct}%** (relative)
+- About **{leavers_avoided}** fewer expected leavers
+- The reduction concentrates on the employees the model scores as highest-risk
 """
 
 

@@ -7,7 +7,47 @@ logic live in this module, so it can be unit-tested independently of the UI.
 
 import pandas as pd
 
-from backend.risk_engine import classify_risk, generate_risk_scores
+from backend.risk_engine import (
+    CRITICAL_COLOR,
+    GOOD_COLOR,
+    WARNING_COLOR,
+    generate_risk_scores,
+)
+
+# Organization-level risk bands, expressed on the share of employees scoring
+# high-risk (RiskScore >= 50) — a different scale from the 0-100 individual
+# score that `classify_risk` grades, so it gets its own thresholds.
+ORG_LOW_THRESHOLD = 15
+ORG_MODERATE_THRESHOLD = 30
+
+
+def get_org_risk(filtered_df):
+    """Single organization-wide risk verdict for the current filter.
+
+    Every page derives its headline risk label from this one function so the
+    Overview, Risk Intelligence, and Strategic Insights pages can never show
+    three different verdicts for the same data. Returns the same label set as
+    `classify_risk` ("Low/Moderate/High Risk") so downstream narrative lookups
+    keyed on those labels keep working.
+    """
+
+    risk_df = generate_risk_scores(filtered_df)
+    high_risk_percentage = round((risk_df["RiskScore"] >= 50).mean() * 100, 1)
+
+    if high_risk_percentage < ORG_LOW_THRESHOLD:
+        label, color, status = "Low Risk", GOOD_COLOR, "\U0001f7e2 Low Workforce Risk"
+    elif high_risk_percentage < ORG_MODERATE_THRESHOLD:
+        label, color, status = "Moderate Risk", WARNING_COLOR, "\U0001f7e1 Moderate Workforce Risk"
+    else:
+        label, color, status = "High Risk", CRITICAL_COLOR, "\U0001f534 High Workforce Risk"
+
+    return {
+        "label": label,
+        "color": color,
+        "status": status,
+        "high_risk_percentage": high_risk_percentage,
+    }
+
 
 REQUIRED_COLUMNS = [
     "Age",
@@ -20,11 +60,38 @@ REQUIRED_COLUMNS = [
     "YearsAtCompany",
 ]
 
+VALID_ATTRITION_VALUES = {"Yes", "No"}
+
 
 def validate_dataset(dataframe, required_columns):
     """Return the subset of `required_columns` missing from `dataframe`."""
 
     return [col for col in required_columns if col not in dataframe.columns]
+
+
+def invalid_attrition_values(dataframe):
+    """Return any `Attrition` values outside {"Yes", "No"}.
+
+    The risk scoring, metrics, and model target all assume a clean Yes/No
+    label, so an uploaded CSV with stray values (blanks, "Y", "True", …)
+    would silently skew every number. This surfaces them so the app can
+    refuse the file instead of reporting garbage.
+    """
+
+    present = set(dataframe["Attrition"].dropna().unique())
+
+    return sorted(str(v) for v in present - VALID_ATTRITION_VALUES)
+
+
+def get_department_options(dataframe):
+    """Department filter options built from the data, not hard-coded.
+
+    Returns "All" followed by the departments actually present, so an
+    uploaded dataset with different departments drives the sidebar filter
+    instead of the four IBM-sample departments baked into the UI.
+    """
+
+    return ["All"] + sorted(dataframe["Department"].dropna().unique())
 
 
 def filter_department(dataframe, selected_department):
@@ -103,10 +170,10 @@ def get_workforce_metrics(filtered_df):
     overtime_pct = _overtime_rate(filtered_df)
     dept_attrition = _attrition_rate(filtered_df)
 
-    # Composite stability score: attrition and overtime pressure combined,
-    # clamped to a readable 35-95 band for the KPI ring.
-    stability_score = round(100 - (dept_attrition * 0.55 + overtime_pct * 0.45), 0)
-    stability_score = max(35, min(stability_score, 95))
+    # Composite stability score: 100 minus a weighted blend of attrition and
+    # overtime pressure. Reported as computed (0-100) rather than clamped to a
+    # flattering band, so the number reflects the actual inputs.
+    stability_score = round(max(0, min(100, 100 - (dept_attrition * 0.55 + overtime_pct * 0.45))), 0)
 
     overtime_attrition_rate = round(
         (filtered_df[filtered_df["OverTime"] == "Yes"]["Attrition"] == "Yes").mean() * 100,
@@ -176,14 +243,19 @@ def get_satisfaction_metrics(filtered_df):
     }
 
 
-def get_risk_metrics(filtered_df):
-    """Employee-level risk scores plus the executive risk roll-up."""
+def get_risk_metrics(filtered_df, cost_per_leaver):
+    """Employee-level risk scores plus the executive risk roll-up.
+
+    `projected_attrition_impact` is high-risk headcount times the
+    `cost_per_leaver` assumption supplied from the sidebar — no hidden
+    constant. Scenario/optimization numbers are no longer faked here; the
+    pages compute them from the trained model (see `model.simulate_overtime_reduction`).
+    """
 
     risk_df = generate_risk_scores(filtered_df)
 
     high_risk_count = int((risk_df["RiskScore"] >= 50).sum())
     high_risk_percentage = round(high_risk_count / len(risk_df) * 100, 1)
-    simulated_risk_reduction = round(high_risk_percentage * 0.18, 1)
 
     heatmap_data = risk_df.pivot_table(
         values="RiskScore",
@@ -199,16 +271,19 @@ def get_risk_metrics(filtered_df):
         "avg_risk_score": round(risk_df["RiskScore"].mean(), 1),
         "high_risk_percentage": high_risk_percentage,
         "retention_probability": round(100 - high_risk_percentage, 1),
-        "projected_attrition_impact": high_risk_count * 15000,
-        "optimization_gain": simulated_risk_reduction,
-        "simulated_risk_reduction": simulated_risk_reduction,
-        "projected_risk": round(high_risk_percentage - simulated_risk_reduction, 1),
+        "projected_attrition_impact": high_risk_count * cost_per_leaver,
         "heatmap_data": heatmap_data,
     }
 
 
-def get_strategic_metrics(filtered_df):
-    """Executive-level strategic KPIs, health index, and risk classification."""
+def get_strategic_metrics(filtered_df, cost_per_leaver):
+    """Executive-level strategic KPIs, health index, and risk classification.
+
+    `projected_attrition_impact` uses the sidebar `cost_per_leaver` assumption.
+    The forward-looking "optimization/projection" numbers are no longer faked
+    with fixed multipliers here; the page derives them from the trained model
+    via `model.simulate_overtime_reduction`.
+    """
 
     attrition_rate = _attrition_rate(filtered_df)
     overtime_percentage = _overtime_rate(filtered_df)
@@ -219,8 +294,6 @@ def get_strategic_metrics(filtered_df):
 
     strategic_risk_score = round(risk_df["RiskScore"].mean(), 1)
     strategic_retention_score = round(100 - strategic_risk_score, 1)
-    optimization_gain = round(strategic_retention_score * 0.12, 1)
-    projected_stability = round(min(strategic_retention_score + optimization_gain, 100), 1)
 
     avg_job_satisfaction = round(filtered_df["JobSatisfaction"].mean() * 20, 1)
     avg_worklife_balance = round(filtered_df["WorkLifeBalance"].mean() * 20, 1)
@@ -235,16 +308,13 @@ def get_strategic_metrics(filtered_df):
     )
     health_index = max(0, min(100, health_index))
 
-    risk_data = classify_risk(strategic_risk_score)
+    risk_data = get_org_risk(filtered_df)
 
     return {
         "high_risk_count": high_risk_count,
         "strategic_risk_score": strategic_risk_score,
         "strategic_retention_score": strategic_retention_score,
-        "projected_attrition_impact": high_risk_count * 15000,
-        "optimization_gain": optimization_gain,
-        "forecast_improvement": optimization_gain,
-        "projected_stability": projected_stability,
+        "projected_attrition_impact": high_risk_count * cost_per_leaver,
         "health_index": health_index,
         "risk_label": risk_data["label"],
         "signal_color": risk_data["color"],
@@ -259,27 +329,61 @@ def get_strategic_metrics(filtered_df):
 
 
 def get_department_risk_ranking(df):
-    """Composite department risk ranking, highest risk first."""
+    """Composite department risk ranking, highest risk first.
 
-    dept_risk = df.groupby("Department").apply(
-        lambda x: (
-            (x["OverTime"] == "Yes").mean() * 30
-            + (x["JobSatisfaction"] <= 2).mean() * 25
-            + (x["WorkLifeBalance"] <= 2).mean() * 20
-        )
-    ).sort_values(ascending=False)
+    Uses the mean of the same per-employee `RiskScore` the rest of the app
+    ranks on (overtime + satisfaction + work-life + tenure + income), so the
+    ranking can't disagree with the individual scores the way the old
+    overtime/satisfaction/work-life-only formula did.
+    """
+
+    scored = generate_risk_scores(df)
+    dept_risk = (
+        scored.groupby("Department")["RiskScore"].mean().sort_values(ascending=False)
+    )
 
     return pd.DataFrame(
         {"Department": dept_risk.index, "Risk Score": dept_risk.values.round(1)}
     )
 
 
-def get_impact_simulation(projected_attrition_impact, optimization_gain):
-    """Executive savings/retention projections from a risk-reduction scenario."""
+def get_department_comparison(df, selected_department):
+    """Department-vs-organization facts used to build data-driven narratives.
+
+    Returns the department's attrition against the company average, its
+    overtime rate, and its composite-risk rank — the raw material the
+    narrative copy is written from, so the text can never claim something the
+    numbers contradict.
+    """
+
+    org_attrition = _attrition_rate(df)
+    ranking = get_department_risk_ranking(df)
+    ranked_depts = list(ranking["Department"])
+    n_depts = len(ranked_depts)
+
+    if selected_department == "All":
+        return {
+            "scope": "All",
+            "org_attrition": org_attrition,
+            "dept_attrition": org_attrition,
+            "overtime_rate": _overtime_rate(df),
+            "rank": None,
+            "n_depts": n_depts,
+            "above_avg": False,
+        }
+
+    dept_df = df[df["Department"] == selected_department]
+    dept_attrition = _attrition_rate(dept_df)
+    rank = ranked_depts.index(selected_department) + 1 if selected_department in ranked_depts else None
 
     return {
-        "projected_savings": round(projected_attrition_impact * 0.22, 0),
-        "projected_retention_gain": round(optimization_gain * 1.4, 1),
+        "scope": selected_department,
+        "org_attrition": org_attrition,
+        "dept_attrition": dept_attrition,
+        "overtime_rate": _overtime_rate(dept_df),
+        "rank": rank,
+        "n_depts": n_depts,
+        "above_avg": dept_attrition > org_attrition,
     }
 
 
