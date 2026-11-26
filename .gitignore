@@ -18,3 +18,6 @@ venv/
 # Stray exports / unrelated data (not part of the project)
 Attrition_and_Hiring.md
 Geodata.txt
+
+# Editor
+.vscode/
