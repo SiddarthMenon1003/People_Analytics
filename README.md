@@ -53,6 +53,10 @@ Accuracy is deliberately **not** used as the headline: on a dataset this imbalan
 model that predicts "stays" for almost everyone scores ~84% while catching no
 leavers. ROC-AUC and recall describe the model honestly.
 
+Recall is modest by design: the product value is the risk **ranking** (who to
+prioritise) and the cost simulation, not flagging every leaver — pushing recall up
+would trade away the precision the cost model relies on.
+
 The development notebook (`development/`) compares Logistic Regression, Random Forest,
 and Gradient Boosting. Logistic Regression scores the best ROC-AUC (~0.82) and gives
 the most interpretable coefficients; the app keeps the Random Forest for its feature
