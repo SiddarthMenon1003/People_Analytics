@@ -1,4 +1,4 @@
-# Workforce Intelligence Platform
+# People Analytics
 
 Predicting employee attrition and turning it into workforce decisions, served as a
 multi-page Streamlit dashboard.
